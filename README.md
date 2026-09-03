@@ -210,3 +210,7 @@ UnitaryOp implementations dependent on the chosen "base" for qudit matrices. For
 
 More examples of the different algorithms we implemented.
 Uncomment some lines to execute the corresponding programs.
+
+### **`LinearCommandBufferExample.hs`**
+
+Haskell implementation of the structure used for UnitaryOp for a different, classical example: Linear Command Buffers. 
