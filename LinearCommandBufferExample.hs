@@ -8,10 +8,11 @@
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wall #-}
 
--- LinearCommandBufferExample.hs
---
 -- Proof of concept for the Qimaera/UnitaryOp resource pattern in a
--- non-quantum setting using GHC linear types.
+-- non-quantum setting using GHC linear types. 
+-- Barriers are inert, so no execution exhibits the hazard they prevent; 
+-- this is a prototype to prove a point, not a real command buffer!
+--
 --
 -- Plans build command syntax; submit interprets it.
 -- The example combines hidden constructors and nominal roles, fresh ids,
@@ -24,6 +25,7 @@
 --   * view barriers are whole-buffer barriers;
 --   * CmdRep abstracts syntax, not arbitrary interpreters;
 --   * splits do not nest and views cannot enter secondaries.
+--   
 --
 -- ChatGPT was used for formatting, comments, and naming.
 
