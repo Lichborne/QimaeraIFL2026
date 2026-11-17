@@ -68,6 +68,7 @@ qftOld (S k) =
 ||| Builds the UnitaryOp with one's own version of a unitary; with the target being the first 
 ||| qubit in LVect (so if only one is passed, it is obviously that, which is how this is usually
 ||| expected to be used)
+export
 Rm : UnitaryOp t => {n:Nat} -> Nat -> (1_: LVect 1 Qubit) -> UStateT (t n) (t n) (LVect 1 Qubit)
 Rm m [q] = do
   [q] <- applyP (2 * pi / (pow 2 (cast m))) q
