@@ -15,11 +15,12 @@ import QuantumOp
 import SimulatedOp
 
 
+||| Depricared because Unsafe, but useful sometimes:
 public export
 runUnitaryNoPrfSim : {i:Nat} -> (1_: UnitaryNoPrf n) -> (1 _ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit) ) -> LPair (UnitaryNoPrf n) (LVect i Qubit)
 runUnitaryNoPrfSim {i = i} simop ust = runUStateT simop ust
 
-
+||| Depricated because Unsafe (but can be useful) -- Implementation of exporting self out of SimulatedOp
 public export
 exportSelf' : {i:Nat} -> (1_: UnitaryNoPrf n) -> (1 _ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit) ) -> UnitaryNoPrf n
 exportSelf' {i = i} simop ust = let unprf # lvect = runUStateT simop ust in
@@ -270,11 +271,9 @@ UnitaryOp UnitaryNoPrf where
   adjointUST = adjointUSTNoPrf'
   applyParallel = applyParallelSimulatedNoPrf
   combineAbs= combineAbsUnitaryNoPrfSimulated
-  run          = runUnitaryNoPrfSim 
   applyH = applyHSim
   applyP = applyPSim
   applyCNOT = applyCNOTSim
-  exportSelf = exportSelf'
   buildUnitary = buildUnitaryNoPrf'
   controlUST= controlUSTUnitaryNoPrf
   applyMultipleControlledOwn = applyMControlSimulatedNoPrf

@@ -76,14 +76,6 @@ interface UnitaryOp (0 t : Nat -> Type) where
 
   --withComputed: {n:Nat} -> (1_ : UStateT (t n) (t n) (LVect i Qubit)) -> (1_ : UStateT (t n) (t n) (LVect i Qubit)) 
   
-  ||| sequence to the end
-  run :  {i : Nat} -> (1_: (t n)) -> (1_ : UStateT (t n) (t n) (LVect i Qubit) ) -> (LPair (t n) (LVect i Qubit))
-
-  ||| Exort (t n) from UStateT, based on an initial t n. This needs us to be able to consume the LVect of Qubits, which requires the internal 
-  ||| workings of qubits to which only QuantumOp has access, and it would be a circular import here. Thus, concrete 
-  ||| implementations need to define this themselves
-  exportSelf :  {i : Nat} -> (1_: (t n)) -> (1_ : UStateT (t n) (t n) (LVect i Qubit)) -> (t n)
-
   ||| build a unitary in t n purely based on the pattern This requires that a function from an LVect of Qubits to a UStateT be given in order
   ||| to sequence the whole building of a unitary, depending on i and n (they will be equal, in fact).
   buildUnitary: {n:Nat} -> ((1_ : LVect n Qubit) -> (UStateT (t n) (t n) (LVect n Qubit))) -> (t n)

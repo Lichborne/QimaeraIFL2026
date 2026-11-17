@@ -221,7 +221,7 @@ runSimulatedCircVis {n} s = LIO.run (do
                     [] => pure []
                     (x :: xs) => pure (x :: xs))
 
-||| Implementatstrn of run for BinarySimulatedOp
+||| Depricared because Unsafe, but useful sometimes: Implementation of run for BinarySimulatedOp
 public export
 runSimulatedCircU : {i:Nat} -> (1_: BinarySimulatedOp n) -> (1 _ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i Qubit) ) -> LPair (BinarySimulatedOp n) (LVect i Qubit)
 runSimulatedCircU {i = i} simop ust = runUStateT simop ust
@@ -350,6 +350,7 @@ applyParallelSimulatedBinary: {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStat
                         -> (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) ((LVect j Qubit))) -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect (i + j) Qubit)
 applyParallelSimulatedBinary ust1 ust2 = MkUST (applyParallelSimulatedBinary' ust1 ust2)
 
+||| Depricated because Unsafe (but can be useful) -- Implementation of exporting self out of SimulatedOp
 public export
 exportSelf' : {i:Nat} -> (1_: BinarySimulatedOp n) -> (1 _ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i Qubit) ) -> BinarySimulatedOp n
 exportSelf' {i = i} simop ust = let op # lvect = runUStateT simop ust in
@@ -430,8 +431,6 @@ UnitaryOp BinarySimulatedOp where
   adjointUST = adjointUSTSimCirc'
   applyParallel = applyParallelSimulatedBinary
   combineAbs= combineAbsSimulatedCirc
-  run          = runSimulatedCircU
-  exportSelf = exportSelf'
   buildUnitary = buildUnitary'
   controlUST = controlUSTBinSimOp
   multipleControlUST = controlMUSTSimOp

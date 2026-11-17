@@ -178,6 +178,7 @@ applyParallelMatrixSim : {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (U
                         -> (1_ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) ((LVect j Qubit))) -> UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect (i + j) Qubit)
 applyParallelMatrixSim ust1 ust2 = MkUST (applyParallelMatrix' ust1 ust2)         
 
+||| Depricared because Unsafe, but useful sometimes:
 public export
 runUnitaryMatrixSim : {i:Nat} -> (1_: UnitaryMatrix n) -> (1 _ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect i Qubit) ) -> LPair (UnitaryMatrix n) (LVect i Qubit)
 runUnitaryMatrixSim {i = i} un ust = runUStateT un ust
@@ -224,11 +225,9 @@ UnitaryOp UnitaryMatrix where
   applyControlledOwn = applyControlledMatrix
   adjointUST = adjointUSTMatrixSim
   applyParallel = applyParallelMatrixSim
-  run          = runUnitaryMatrixSim
   applyH = applyHMatrixSim
   applyP = applyPMatrixSim
   applyCNOT = applyCNOTMatrixSim
-  exportSelf = exportUnitaryMatrixSelf
   combineAbs = combineAbsUnitaryMatrixSim
   applyMultipleControlledOwn = applyMultipleControlledOwnMatrix
   buildUnitary = buildUnitaryM

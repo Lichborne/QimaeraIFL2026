@@ -66,7 +66,7 @@ public export
 run' : {i:Nat} -> (1_: SimulatedOp n) -> (1 _ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit) ) -> LPair (SimulatedOp n) (LVect i Qubit)
 run' {i = i} simop ust = runUStateT simop ust
 
-||| Implementation of exporting self out of SimulatedOp
+||| Depricated because Unsafe (but can be useful) -- Implementation of exporting self out of SimulatedOp
 public export
 exportSelf' : {i:Nat} -> (1_: SimulatedOp n) -> (1 _ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit) ) -> SimulatedOp n
 exportSelf' {i = i} simop ust = let op # lvect = runUStateT simop ust in
@@ -353,8 +353,6 @@ UnitaryOp SimulatedOp where
   applyParallel = applyParallelSimulated 
   adjointUST = adjointUST'
   combineAbs= combineAbsSimulated
-  run          = run' 
-  exportSelf = exportSelf'
   buildUnitary = buildUnitary'
   applyMultipleControlledOwn = applyMControlSimulatedOp
   controlUST = controlUSTSimOp

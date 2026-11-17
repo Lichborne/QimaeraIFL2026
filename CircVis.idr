@@ -226,11 +226,9 @@ UnitaryOp CircVis where
   adjointUST = adjointUST'
   applyParallel = applyParallelSimulated
   combineAbs= combineAbsUnitarySimulated
-  run          = runUnitarySim 
   applyH = applyHSim
   applyP = applyPSim
   applyCNOT = applyCNOTSim
-  exportSelf = exportUnitarySelf
   buildUnitary = buildUnitary'
   applyMultipleControlledOwn = applyMControlAbsSimulated
   multipleControlUST = controlMUSTUnitary
