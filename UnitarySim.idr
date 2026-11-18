@@ -13,20 +13,10 @@ import QStateT
 import QuantumOp
 
 
-public export
-runUnitarySim : {i:Nat} -> (1_: Unitary n) -> (1 _ : UStateT (Unitary n) (Unitary n) (LVect i Qubit) ) -> LPair (Unitary n) (LVect i Qubit)
-runUnitarySim {i = i} un ust = runUStateT un ust
-
-public export
+private
 runSplitUnitarySim : {i:Nat} -> {j:Nat} -> (1_: Unitary n) -> (1 _ : UStateT (Unitary n) (Unitary n) (LPair (LVect i Qubit) (LVect j Qubit)))  
                 -> LPair (Unitary n) (LPair (LVect i Qubit) (LVect j Qubit))
 runSplitUnitarySim {i = i} un ust = runUStateT un ust
-
-public export
-exportUnitarySelf : {i:Nat} -> (1_: Unitary n) -> (1 _ : UStateT (Unitary n) (Unitary n) (LVect i Qubit) ) -> (Unitary n) 
-exportUnitarySelf un ust = let op # lvect = runUStateT un ust in
-                                      let () = discardq lvect in
-                                        op
 
 ||| Auxiliary function for applying a circuit to some qubits
 ||| this has to recognize and handle the case where it is applied within an abstract control
@@ -48,7 +38,7 @@ private
 applyControlSimulated': {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1_ : LVect i Qubit) -> (1_ : Unitary i) ->
     (1_ : Unitary (S n)) -> LPair (Unitary (S n)) (LVect (S i) Qubit)
 applyControlSimulated' {n} {i} c ts ui usn = 
-  let (c, k) = qubitToNatPair c in
+  let c # k = qubitToNatPair c in
     let lvOut # targets = distributeDupedLVectVect ts in 
       let usnOut # _ = (applySafe (controlled ui) usn (k::targets)) in
         usnOut # (c :: lvOut)
@@ -118,7 +108,7 @@ applyWithSplitLVectsSimulated ust = MkUST (applyWithSplitLVects' ust)
 applyControlledUSplitSim' : {i:Nat} -> {j:Nat} -> {n : Nat} -> (1 _ : Qubit) -> (1_ : LVect i Qubit) -> (1_ : LVect j Qubit) -> (1_ : Unitary (i + j))
                              -> (1_ : Unitary (S n)) -> LPair (Unitary (S n)) (LPair (LVect (S (i)) Qubit) (LVect j Qubit))
 applyControlledUSplitSim' c tsi tsj uij usn= 
-  let (c, k) = qubitToNatPair c in
+  let c # k = qubitToNatPair c in
     let lvMid # targets = distributeDupedLVectVect (tsi ++ tsj) in
       let lvOutL # lvOutR = splitLVinto i j lvMid in
         let usnOut # _ = (applySafe (controlled uij) usn (k::targets)) in
@@ -204,7 +194,7 @@ adjointUST' : {n:Nat} -> (1_ : UStateT (Unitary n) (Unitary n) (LVect i Qubit)) 
 adjointUST' ust = MkUST (invert ust)  
 
 
-export
+private
 neutralRun' : {n:Nat} -> (1_ : UStateT (Unitary 0) (Unitary n) (LVect n Qubit)) -> Unitary n
 neutralRun' ust = let op # lvect = runUStateT (IdGate {n = 0}) ust in
                         let () = discardq lvect in
@@ -230,7 +220,7 @@ controlUST': {n : Nat} -> {i : Nat} -> (1 control : Qubit) -> (1 locations : LVe
                    (targetPattern : ((1_ :LVect i Qubit) -> UStateT (Unitary i) (Unitary i) (LVect i Qubit)))
                    -> (1_ :Unitary n) -> LPair (Unitary n) (LVect (S i) Qubit)
 controlUST' {n} {i} ctrl locs targetP un = let u = buildUnitary' {n = i} targetP in -- this is handy because we already have it, but it is NOT needed to define thisß
-  let (q, c) = qubitToNatPair ctrl in
+  let q # c = qubitToNatPair ctrl in
   let qs # ts= distributeDupedLVectVect locs in
     let uc = controlled u in
       let unOut # _ = (applySafe uc un (c::ts)) in

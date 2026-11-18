@@ -118,7 +118,7 @@ measureCircNoStr' {n} i (MkBinarySimulatedOp usn w counter str) = do
 ||| Relevant version of list index       
 public export
 listIndexCirc : (1 _ : BinarySimulatedOp n) -> (1 _ : Qubit) -> LFstPair (LPair (BinarySimulatedOp n) Qubit) Nat
-listIndexCirc (MkBinarySimulatedOp us v counter str ) q = let (q, k) = qubitToNatPair q in (MkBinarySimulatedOp us v counter str # q) # (listIndex' v q)
+listIndexCirc (MkBinarySimulatedOp us v counter str ) q = let q # k = qubitToNatPair q in (MkBinarySimulatedOp us v counter str # q) # (listIndexN v k)
 
 measureQubitCirc'' : {n : Nat} -> {i : Nat} ->
                  (1 _ : LVect i Qubit) ->
@@ -126,7 +126,7 @@ measureQubitCirc'' : {n : Nat} -> {i : Nat} ->
 measureQubitCirc'' [] qs = pure1 (qs # [])
 measureQubitCirc'' (x :: xs) (MkBinarySimulatedOp uin v counter str) = 
     let (qs' # q) # y = listIndexCirc (MkBinarySimulatedOp uin v counter str) x in
-      let (q, k) = qubitToNatPair q in   
+      let () = discardq [q] in   
       do  
         (s # (b)) <- measureCirc' y qs'
         (s1 # (bs)) <- measureQubitCirc'' xs s
@@ -142,7 +142,7 @@ measureQubitsCirc' [] qs = pure1 (qs # [])
 measureQubitsCirc' (x :: xs) (MkBinarySimulatedOp uin v counter str) = 
   let newStr = (addStringFuncMeas str counter uin) in
   let ((MkBinarySimulatedOp uin v counter strOut) # q) # y = listIndexCirc (MkBinarySimulatedOp uin v counter newStr) x in
-    let (q, k) = qubitToNatPair q in 
+    let () = discardq [q] in 
       let sIn = strOut ++ "\ndef AllFunctionsBefore"++ show counter++"(circuit): \n" ++ (addFuncOfFuncs counter) 
                 ++ "\treturn circuit\n\n" ++ "\ndef Function"++ show (counter)++"(circuit): \n" in 
       do  
@@ -159,7 +159,7 @@ measureAllCirc'' : {n : Nat} ->
 measureAllCirc'' [] qs = pure1 (qs # [])
 measureAllCirc'' (x :: xs) (MkBinarySimulatedOp uin v counter str) = 
     let (qs' # q) # y = listIndexCirc (MkBinarySimulatedOp uin v counter str) x in
-      let (q, k) = qubitToNatPair q in   
+      let () = discardq [q] in   
       do  
         (s # (b)) <- measureCircNoStr' y qs'
         (s1 # (bs)) <- measureAllCirc'' xs s
@@ -175,7 +175,7 @@ measureAllCirc' [] qs = pure1 (qs # [])
 measureAllCirc' (x :: xs) (MkBinarySimulatedOp uin v counter str) = 
   let newStr = (addStringFuncMeas str counter uin) in
   let ((MkBinarySimulatedOp uin v counter strOut) # q) # y = listIndexCirc (MkBinarySimulatedOp uin v counter newStr) x in
-    let (q, k) = qubitToNatPair q in 
+    let () = discardq [q] in 
       let sIn = strOut ++ "\ndef AllFunctionsBefore"++ show counter++"(circuit): \n" ++ (addFuncOfFuncs counter) ++ "\treturn circuit\n\n"
                 ++ "\ndef Function"++ show counter++"(circuit): \n\tcircuit.measure_all()\n\treturn circuit\n\n" in 
       do  
@@ -281,26 +281,13 @@ combineAbsSimulatedCirc q = MkUST (combineAbs' q)
 
 --(1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LPair Qubit (LVect i Qubit))) ->
 
-||| One must be extremelhy careful with the targets here because there are no guarantees if one wishes to do this!
-private
-applyControlOnly' : {n : Nat} -> {i : Nat} -> (1 _ : BinarySimulatedOp i) -> (1 _ : Qubit) -> 
-   (1 _ : BinarySimulatedOp n) -> (LPair (BinarySimulatedOp n) (LVect (S i) Qubit))
-applyControlOnly' {n} {i} (MkBinarySimulatedOp uis vi vacuousC vacuousStr) q (MkBinarySimulatedOp un v counter str) = 
-   let (q, k) = qubitToNatPair q in
-      let unew # _ = applySafe (controlled uis) un ((k:: (toVectN vi))) in
-        do ((MkBinarySimulatedOp unew v counter str) # (q :: toLVectQQ vi))
-
 --(1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LPair Qubit (LVect i Qubit))) ->
-export
-applyControlOnlySimulated : {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1 _ : BinarySimulatedOp i) ->      
-    UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect (S i) Qubit)
-applyControlOnlySimulated control simop = MkUST (applyControlOnly' simop control)
 
 private
 applyControlSimulated': {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1 _ : LVect i Qubit) -> (1 ownUnitary : BinarySimulatedOp i) ->        
     (1_ : BinarySimulatedOp (S n)) -> LPair (BinarySimulatedOp (S n)) (LVect (S i) Qubit)
 applyControlSimulated' {n} c ts (MkBinarySimulatedOp ui vecuousV vacuousC vacuousStr) (MkBinarySimulatedOp usn vsn csn str)= 
-    let (c, k) = qubitToNatPair c in
+    let c # k = qubitToNatPair c in
       let lvOut # targets = distributeDupedLVectVect ts in 
         let usnOut # _ = (applySafe (controlled ui) usn (k::targets)) in
           (MkBinarySimulatedOp usnOut vsn csn str)  # (c :: lvOut)
@@ -373,7 +360,7 @@ applyMControlBinarySimulatedOp: {n : Nat} -> {i : Nat} -> {k : Nat} -> (1_ : LVe
 applyMControlBinarySimulatedOp cs ts ui = MkUST (applyMControlSimulated' cs ts ui)   
 
 ||| implementation of parsion from a neutral element
-export
+private
 neutralRun : {n:Nat} -> (1_ : UStateT (BinarySimulatedOp 0) (BinarySimulatedOp n) (LVect n Qubit)) -> BinarySimulatedOp n
 neutralRun ust = let op # lvect = runUStateT (MkBinarySimulatedOp (IdGate {n = 0}) [] 0 "") ust in
                         let () = discardq lvect in
@@ -409,7 +396,7 @@ controlUST': {n : Nat} -> {i : Nat} -> (1 control : Qubit) -> (1 locations : LVe
                    (targetPattern : ((1_ :LVect i Qubit) -> UStateT (BinarySimulatedOp i) (BinarySimulatedOp i) (LVect i Qubit)))
                    -> (1_ :BinarySimulatedOp n) -> LPair (BinarySimulatedOp n) (LVect (S i) Qubit)
 controlUST' {n} {i} ctrl locs targetP  (MkBinarySimulatedOp un vn counter str) = let (MkBinarySimulatedOp u vacvn vaccounter vacstr) = buildUnitary' {n = i} targetP in
-  let (q, c) = qubitToNatPair ctrl in
+  let q # c = qubitToNatPair ctrl in
   let qs # ts= distributeDupedLVectVect locs in
     let uc = controlled u in
       let unOut # _ = (applySafe uc un (c::ts)) in

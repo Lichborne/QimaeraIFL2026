@@ -78,7 +78,7 @@ applyUnitaryMatrixSim qubits ui = MkUST (applyUnitaryMatrixSim' qubits ui)
 applyHMatrixSim' : {n : Nat} -> (1 _ : Qubit) -> 
                          (1_: UnitaryMatrix n) -> LPair (UnitaryMatrix n) (LVect 1 Qubit)
 applyHMatrixSim'{n} qubit umn = 
-  let (q, k) = qubitToNatPair qubit  in
+  let q # k = qubitToNatPair qubit  in
     let (umnFree, vac) = dupMatrixCD umn in
       let left = simpleTensor matrixH n k in
         (left `matrixMult` umnFree) # [q]
@@ -91,7 +91,7 @@ applyHMatrixSim qubit = MkUST (applyHMatrixSim' qubit)
 applyPMatrixSim' : {n : Nat} -> (1 _ : Qubit) -> (p:Double) -> 
                          (1_: UnitaryMatrix n) -> LPair (UnitaryMatrix n) (LVect 1 Qubit)
 applyPMatrixSim'{n} qubit p umn = 
-  let (q, k) = qubitToNatPair qubit  in
+  let q # k = qubitToNatPair qubit  in
     let (umnFree, vac) = dupMatrixCD umn in
       let left = simpleTensor (matrixP p) n k in
         (left `matrixMult` umnFree) # [q]
@@ -104,8 +104,8 @@ applyPMatrixSim p qubit = MkUST (applyPMatrixSim' qubit p)
 applyCNOTMatrixSim' : {n : Nat} -> (1 _ : Qubit) -> (1 _ : Qubit) ->
                          (1_: UnitaryMatrix n) -> LPair (UnitaryMatrix n) (LVect 2 Qubit)
 applyCNOTMatrixSim'{n} c t umn = 
-  let (c, i) = qubitToNatPair c  in
-   let (t, j) = qubitToNatPair t  in 
+  let c # i = qubitToNatPair c  in
+   let t # j = qubitToNatPair t  in 
     let (umnFree, vac) = dupMatrixCD umn in
       let left = tensorCNOT n i j in
         (left `matrixMult` umnFree) # [c,t]
@@ -133,7 +133,7 @@ applyControlledMatrix' {n} {i} c ts umi umsn =
   let (umi1, vac1) = dupMatrixCD umi in
     let (umsnFree, vac) = dupMatrixCD umsn in
       let controlled = controlUnitaryPow umi1 in
-        let (c, k) = qubitToNatPair c in 
+        let c # k = qubitToNatPair c in 
           let (ts # ks) = distributeDupedLVectVect ts in
             let uOut = matrixMult (applyUM {n = S n} (k::ks) (controlled)) umsnFree in
             uOut # (c::ts)

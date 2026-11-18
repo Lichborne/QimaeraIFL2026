@@ -138,27 +138,14 @@ combineAbsSimulated q = MkUST (combineAbs' q)
 
 --(1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair Qubit (LVect i Qubit))) ->
 
-||| One must be extremelhy careful with the targets here because there are no guarantees if one wishes to do this!
-private
-applyControlOnly' : {n : Nat} -> {i : Nat} -> (1 _ : SimulatedOp i) -> (1 _ : Qubit) -> 
-   (1 _ : SimulatedOp n) -> (LPair (SimulatedOp n) (LVect (S i) Qubit))
-applyControlOnly' {n} {i} (MkSimulatedOp vacuousQS uis vi vacuousC) q (MkSimulatedOp qs un v counter) =
-      let (q, k) = qubitToNatPair q in
-        let unew # _ = applySafe (controlled uis) un ((k:: (toVectN vi))) in
-          do ((MkSimulatedOp qs unew v counter) # (q :: toLVectQQ vi))
-
 --(1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair Qubit (LVect i Qubit))) ->
-export
-applyControlOnlySimulated : {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1 _ : SimulatedOp i) ->      
-    UStateT (SimulatedOp n) (SimulatedOp n) (LVect (S i) Qubit)
-applyControlOnlySimulated control simop = MkUST (applyControlOnly' simop control)
 
 ||| Auxiliary function for applying a control to a UStateT
 private
 applyControlSimulated': {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1 _ : LVect i Qubit) -> (1 ownUnitary : SimulatedOp i)->      
     (1_ : SimulatedOp (S n)) -> LPair (SimulatedOp (S n)) (LVect (S i) Qubit)
 applyControlSimulated' {n} c ts (MkSimulatedOp vacuousQS ui vecuousV vacuousC) (MkSimulatedOp qsn usn vsn csn)= 
-  let (c, k) = qubitToNatPair c in
+  let c # k = qubitToNatPair c in
     let lvOut # targets = distributeDupedLVectVect ts in 
       let usnOut # _ = (applySafe (controlled ui) usn (k::targets)) in
         (MkSimulatedOp qsn usnOut vsn csn)  # (c :: lvOut)
@@ -198,7 +185,7 @@ applyParallelSimulated ust1 ust2 = MkUST (applyParallelSimulated' ust1 ust2)
 applyControlledUSplitSim' : {i:Nat} -> {j:Nat} -> {n : Nat} -> (1 _ : Qubit) -> (1_ : LVect i Qubit) -> (1_ : LVect j Qubit) -> (1_ : SimulatedOp (i + j))
                              -> (1_ : SimulatedOp (S n)) -> LPair (SimulatedOp (S n)) (LPair (LVect (S (i)) Qubit) (LVect j Qubit))
 applyControlledUSplitSim' c tsi tsj (MkSimulatedOp dummyqs uij dummyvi dummyc) (MkSimulatedOp qsn usn vsn csn)= 
-  let (c, k) = qubitToNatPair c in
+  let c # k = qubitToNatPair c in
     let lvMid # targets = distributeDupedLVectVect (tsi ++ tsj) in
       let lvOutL # lvOutR = splitLVinto i j lvMid in
         let usnOut # _ = (applySafe (controlled uij) usn (k::targets)) in
@@ -225,33 +212,9 @@ adjointUST' ust = MkUST (invert ust)
 
 neutralOp : UnitaryOp t => {n : Nat} -> ((t n)) 
 
-||| sequence with dummy (t n) used for only constructing unitaries
-runNeutral : UnitaryOp t =>  {n : Nat} -> (1_ : UStateT (t n) (t n) (LVect n Qubit) ) -> (LPair (t n) (LVect n Qubit))
 
-||| sequence over a given vector of qubits in (t n) used for only constructing unitaries
-runNeutralAt : UnitaryOp t =>  {n : Nat} -> (1 _ : LVect n Qubit) -> (1_ : UStateT (t n) (t n) (LVect n Qubit) ) -> (LPair (t n) (LVect n Qubit))
+neutralWithQubits : UnitaryOp t => {n : Nat} -> (1 _ : LVect n Qubit) -> (LPair (t n) (LVect n Qubit))  
 
-||| Apply the controlled version of a unitary in t n without explicit list (taking it from t n). Implementations assume control goes at head of qubit list
-||| This requires that the ownUnitary be built so that it is applicable to the i qubits within n it is specified for
-||| This isn;t necessarily possible to do, so it does not form a part of the interface, but it is useful.
-applyControlledOwn :UnitaryOp t =>  {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1 ownUnitary : t i) -> UStateT (t n) (t n) (LVect (S i) Qubit) --> (1 _ :LVect i Qubit) 
-
-|||Helper 
-private
-applyControlledUnitaryOwn' : {n : Nat} -> {i : Nat} -> (1 _ : SimulatedOp i) -> (1 _ : Qubit) -> 
-   (1 _ : SimulatedOp n) -> (LPair (SimulatedOp n) (LVect (S i) Qubit))
-applyControlledUnitaryOwn' {n} {i} (MkSimulatedOp vacuousQS ui vi vacuousC) q (MkSimulatedOp qs un vn counter) =
-  let (q, k) = qubitToNatPair q in
-    let vin = toVectN vi in
-      let unew # _ = UnitaryLinear.applySafe (controlled ui) un (k :: (vin)) in
-        do ((MkSimulatedOp qs unew vn counter) # (q :: (toLVectQ vin)))
-           
-
-||| Implementation of controlling operation over self-defined operation
-export
-applyControlledOwnSimulated : {n : Nat} -> {i : Nat} -> (1 _ : Qubit) ->
-                   (1_ : SimulatedOp i) -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect (S i) Qubit) 
-applyControlledOwnSimulated control simop= MkUST (applyControlledUnitaryOwn' simop control )
 
 ||| helper for controlling operation over self-defined operation
 private
@@ -271,7 +234,7 @@ applyMControlSimulatedOp: {n : Nat} -> {i : Nat} -> {k : Nat} -> (1_ : LVect (S 
 applyMControlSimulatedOp cs ts ui = MkUST (applyMControlSimulated' cs ts ui)   
 
 ||| Implementation of a neutral parsing
-export
+private
 neutralRun' : {n:Nat} -> (1_ : UStateT (SimulatedOp 0) (SimulatedOp n) (LVect n Qubit)) -> SimulatedOp n
 neutralRun' ust = let op # lvect = runUStateT (MkSimulatedOp (neutralIdPow 0) (IdGate {n = 0}) [] 0) ust in
                         let () = discardq lvect in
@@ -290,7 +253,7 @@ controlUST': {n : Nat} -> {i : Nat} -> (1 control : Qubit) -> (1 locations : LVe
                    (targetPattern : ((1_ :LVect i Qubit) -> UStateT (SimulatedOp i) (SimulatedOp i) (LVect i Qubit)))
                    -> (1_ :SimulatedOp n) -> LPair (SimulatedOp n) (LVect (S i) Qubit)
 controlUST' {n} {i} ctrl locs targetP  (MkSimulatedOp state un vn counter) = let (MkSimulatedOp vacqs u vacvn vaccounter) = buildUnitary' {n = i} targetP in
-  let (q, c) = qubitToNatPair ctrl in
+  let q # c = qubitToNatPair ctrl in
   let qs # ts= distributeDupedLVectVect locs in
     let uc = controlled u in
       let unOut # _ = (applySafe uc un (c::ts)) in

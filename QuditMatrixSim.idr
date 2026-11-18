@@ -80,7 +80,7 @@ applyHQUMSim' :
   (1 _ : QuditUM base n) ->
   LPair (QuditUM base n) (LVect 1 Qubit)
 applyHQUMSim' {base} {n} qubit umn =
-  let (q, k) = qubitToNatPair qubit in
+  let q # k = qubitToNatPair qubit in
   let (umnFree, vac) = dupMatrixCD umn in
   let g1 : Matrix (power base 1) (power base 1) = asPow1 base (gateF base) in
   let left : QuditUM base n = applyUMBase {n} {i = 1} base [k] g1 in
@@ -101,7 +101,7 @@ applyPQUMSim' :
   (1 _ : QuditUM base n) ->
   LPair (QuditUM base n) (LVect 1 Qubit)
 applyPQUMSim' {base} {n} qubit p umn =
-  let (q, k) = qubitToNatPair qubit in
+  let q # k = qubitToNatPair qubit in
   let (umnFree, vac) = dupMatrixCD umn in
   let g1 : Matrix (power base 1) (power base 1) = asPow1 base (phaseOn1 base p) in
   let left : QuditUM base n = applyUMBase {n} {i = 1} base [k] g1 in
@@ -122,8 +122,8 @@ applyCNOTQUMSim' :
   (1 _ : QuditUM base n) ->
   LPair (QuditUM base n) (LVect 2 Qubit)
 applyCNOTQUMSim' {base} {n} c t umn =
-  let (cWire, i) = qubitToNatPair c in
-  let (tWire, j) = qubitToNatPair t in
+  let cWire # i = qubitToNatPair c in
+  let tWire # j = qubitToNatPair t in
   let (umnFree, vac) = dupMatrixCD umn in
   let g2 : Matrix (power base 2) (power base 2) = sum2CorePow base in
   let left : QuditUM base n = applyUMBase {n} {i = 2} base [i, j] g2 in
@@ -196,7 +196,7 @@ applyControlledQUMSim' :
 applyControlledQUMSim' {base} {n} {i} c ts umi umsn =
   let (umi1, vac1) = dupMatrixCD umi in
   let (umsnFree, vac) = dupMatrixCD umsn in
-  let (cWire, k) = qubitToNatPair c in
+  let cWire # k = qubitToNatPair c in
   let (tsLV # ks) = distributeDupedLVectVect ts in
   let full : QuditUM base (S n) =
         multiControlledQUM {n = S n} {i} {k = 1} base [k] 1 ks umi1
@@ -266,17 +266,8 @@ applyParallelQUMSim :
   UStateT (QuditUM base n) (QuditUM base n) (LVect (i + j) Qubit)
 applyParallelQUMSim ust1 ust2 = MkUST (applyParallelQUMSim' ust1 ust2)
 
-||| "runQUMSim" runs a UStateT program starting from an existing QuditUM base n.
-public export
-runQUMSim :
-  {base : Nat} -> {n : Nat} -> {i : Nat} ->
-  (1 _ : QuditUM base n) ->
-  (1 _ : UStateT (QuditUM base n) (QuditUM base n) (LVect i Qubit)) ->
-  LPair (QuditUM base n) (LVect i Qubit)
-runQUMSim un ust = runUStateT un ust
-
 ||| "runSplitQUMSim" runs a split-output UStateT program and returns both wire lists.
-public export
+private
 runSplitQUMSim :
   {base : Nat} -> {n : Nat} -> {i : Nat} -> {j : Nat} ->
   (1 _ : QuditUM base n) ->

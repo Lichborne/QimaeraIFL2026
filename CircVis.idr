@@ -14,16 +14,12 @@ import QuantumOp
 
 
 
-public export
-runUnitarySim : {i:Nat} -> (1_: CircVis n) -> (1 _ : UStateT (CircVis n) (CircVis n) (LVect i Qubit) ) -> LPair (CircVis n) (LVect i Qubit)
-runUnitarySim {i = i} un ust = runUStateT un ust
-
-public export
+private
 runSplitUnitarySim : {i:Nat} -> {j:Nat} -> (1_: CircVis n) -> (1 _ : UStateT (CircVis n) (CircVis n) (LPair (LVect i Qubit) (LVect j Qubit)))  
                 -> LPair (CircVis n) (LPair (LVect i Qubit) (LVect j Qubit))
 runSplitUnitarySim {i = i} un ust = runUStateT un ust
 
-public export
+private
 exportUnitarySelf : {i:Nat} -> (1_: CircVis n) -> (1 _ : UStateT (CircVis n) (CircVis n) (LVect i Qubit) ) -> (CircVis n) 
 exportUnitarySelf un ust = let op # lvect = runUStateT un ust in
                                       let () = discardq lvect in
@@ -191,7 +187,7 @@ adjointUST' : {n:Nat} -> (1_ : UStateT (CircVis n) (CircVis n) (LVect i Qubit)) 
 adjointUST' ust = MkUST (invert ust)  
 
 
-export
+private
 neutralRun' : {n:Nat} -> (1_ : UStateT (CircVis 0) (CircVis n) (LVect n Qubit)) -> CircVis n
 neutralRun' ust = let op # lvect = runUStateT (IdCirc {n = 0}) ust in
                         let () = discardq lvect in

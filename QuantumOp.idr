@@ -126,12 +126,6 @@ interface UnitaryOp (0 t : Nat -> Type) where
 ||| UTILIZED, AS THEY MAKE LIFE A LOT EASIER
 ------------------------------------------
 
-||| for exporting an instance opf the Unitary algebraic datatype based on the unitary build inside UStateT
-||| this is not in general doable, as it depends on the structure of the specific t n and whether it can be translated into 
-||| a value of Unitary n, because the proofs are necessary to build an instance of the type
-export
-exportUnitary : UnitaryOp t => {i : Nat} -> (1_: (t n)) -> (1_ : UStateT (t n) (t n) (LVect i Qubit)) -> (Unitary n)
-
 {- Apply the controlled version of a unitary. Implementations assume control goes at head of lvect list
 applyControlWithSplitLVects : {i:Nat} -> {j:Nat} -> {n : Nat} -> (1 _ : Qubit) -> (1_ : (LVect i Qubit)) -> (1_:(LVect j Qubit)) -> (1_: t (i+j))
 --> UStateT (t (S n)) (t (S n)) (LPair (LVect (S (i)) Qubit) (LVect j Qubit))
@@ -179,11 +173,6 @@ applyUnitaryAbs: UnitaryOp t => {n : Nat} -> {i : Nat} -> (1_ : UStateT (t n) (t
                   -> UStateT (t n) (t n) (LVect i Qubit)
 
 
-||| sequence to the end with split computation
-export
-runSplit : UnitaryOp t =>  {i : Nat} -> {j:Nat} -> (1_: (t n)) -> (1_ : UStateT (t n) (t n) (LPair (LVect i Qubit) (LVect j Qubit)) ) 
-            -> (LPair (t n) (LPair (LVect i Qubit) (LVect j Qubit)))
-    
 ||| Abstract split application: Convenience function for avoiding proofs when dealing with multiple qubit list inputs/ancillae
 export
 applyWithSplitLVects : UnitaryOp t =>   {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (t n) (t n) (LPair (LVect i Qubit) (LVect j Qubit)))
@@ -253,8 +242,14 @@ splitLVinto  n 0 any = (rewrite sym $ plusZeroRightNeutral n in any) # []
 splitLVinto (S m) (S r) (a::as) = let as # ass = splitLVinto m (S r) (as) in (a::as) # ass
 
 
-||| Find an element in a list : used to find the wire of a qubit
+||| Find the position of the qubit with identifier k in a list of qubits
 export
+listIndexN : {n : Nat} -> Vect n Qubit -> Nat -> Nat
+listIndexN [] _ = 0
+listIndexN (MkQubit x :: xs) k = if x == k then 0 else S (listIndexN xs k)
+
+||| Find an element in a list : used to find the wire of a qubit
+private
 listIndex' : {n : Nat} -> Vect n Qubit -> Qubit -> Nat
 listIndex' [] _ = 0
 listIndex' (MkQubit x :: xs) (MkQubit k) = if x == k then 0 else S (listIndex' xs (MkQubit k))
@@ -370,7 +365,7 @@ succNotLTEqzero : Not (LTEq (MkQubit (S n)) (MkQubit Z))
 succNotLTEqzero LTEZero impossible
 succNotLTEqzero (LTEqCons x) = absurd x 
 
-export
+private
 isLTEq : (a, b : Qubit) -> Dec (LTEq a b)
 isLTEq (MkQubit Z)  (MkQubit n) = Yes (LTEqCons LTEZero)
 isLTEq (MkQubit (S k)) (MkQubit Z) = No (succNotLTEqzero)
@@ -387,7 +382,7 @@ data LTq : Qubit -> Qubit -> Type where
 notltenotlt : (LTEq (MkQubit (S left)) (MkQubit right) -> Void) -> LTq (MkQubit (left)) (MkQubit right) -> Void
 notltenotlt tovoid (LTqCons lte) = tovoid lte
 
-export
+private
 isLTq : (l, r : Qubit) -> Dec (LTq l r)
 isLTq (MkQubit left) (MkQubit right)= case isLTEq (MkQubit (S left)) (MkQubit right) of 
   Yes prf => Yes (LTqCons prf)
@@ -481,7 +476,7 @@ toNVect (x::xs) any (y::ys) = case isElem y (x::xs) of
     Yes prf => x :: (toNVect (x::xs) (x::any) ys)
   Yes prf => x :: (toNVect (xs) (x::any) ys)
 
-export
+private
 toNVectQ: (Vect i Qubit) -> (Vect n Qubit) -> (Vect n Qubit) 
 toNVectQ _ [] = []
 toNVectQ [] (x::xs) = (x::xs)
@@ -521,10 +516,16 @@ passDownForControl : {i:Nat} -> (1 _ : LVect i Qubit) -> LPair (LVect i Qubit) (
 passDownForControl [] = [] # []
 passDownForControl {i} xs = xs # (toLVectQQ $ makeNeutralVect i)
 
-||| duplicate a qubit and take the natural number used to constructed out
+||| read the natural number identifying a qubit; the qubit itself is returned
+||| linearly, so this cannot be used to duplicate it
 export
-qubitToNatPair : (1_ : Qubit) -> Pair Qubit Nat 
-qubitToNatPair (MkQubit q) = ((MkQubit q), q)
+qubitToNatPair : (1_ : Qubit) -> LFstPair Qubit Nat
+qubitToNatPair (MkQubit q) = (MkQubit q) # q
+
+||| use up a qubit that has been measured
+private
+consumeQubit : (1_ : Qubit) -> ()
+consumeQubit (MkQubit _) = ()
 
 private
 distributeDupedLVect : (1 _ : LVect i Qubit) -> LPair (LVect i Qubit) (LVect i Qubit) 
@@ -542,7 +543,7 @@ distributeDupedLVectVect (MkQubit k :: xs) =
   
 
 ||| this is unsafe in general, but safe for us
-export
+private
 findInLinQ : {n:Nat} -> (q : Qubit) -> Vect (S n) Qubit -> (Vect n Qubit)
 findInLinQ (MkQubit q) [] impossible
 findInLinQ {n = Z} (MkQubit q) (MkQubit m :: xs) = []
@@ -605,7 +606,7 @@ smallestMissing (x::y::ys) = case x of
   (S k) => Z
 
 ||| recalculate the counter
-export
+private
 reCalculateCounter : {n:Nat} -> (v: Vect n Qubit) -> Nat
 reCalculateCounter [] = 0
 reCalculateCounter {n = S k} (x::xs) = smallestMissing (sort (toVectN (x::xs)))
@@ -661,13 +662,9 @@ neutralOp' : UnitaryOp t => {n:Nat} -> SimulatedOp n
 neutralOp' {n} = (MkSimulatedOp (neutralIdPow n) (IdGate {n = n}) (makeNeutralVect n) n)
 
 export
-runNeutral' :  UnitaryOp t => {n : Nat} -> (1 _ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect n Qubit) ) -> LPair (SimulatedOp n) (LVect n Qubit)
-runNeutral' {n} ust = runUStateT (MkSimulatedOp (neutralIdPow n) (IdGate {n = n}) (makeNeutralVect n) n) ust
-
-export
 listIndex : (1 _ : SimulatedOp n) -> (1 _ : Qubit) -> LFstPair (LPair (SimulatedOp n) Qubit) Nat
-listIndex (MkSimulatedOp qs us v counter) q = let (q, k) = qubitToNatPair q in
-        (MkSimulatedOp qs us v counter # q) # (listIndex' v q)
+listIndex (MkSimulatedOp qs us v counter) q = let q # k = qubitToNatPair q in
+        (MkSimulatedOp qs us v counter # q) # (listIndexN v k)
 
 
 lvectify : (1 _ : Vect i Qubit) -> (LVect i Qubit)
@@ -781,7 +778,7 @@ measureQubits'' : {n : Nat} -> {i : Nat} ->
 measureQubits'' [] qs = pure1 (qs # [])
 measureQubits'' (x :: xs) qs = 
   let (qs' # q) # y = listIndex qs x in
-    let (q, k) = qubitToNatPair q in 
+    let () = consumeQubit q in
       do
       (s # b) <- measure' y qs'
       (s1 # bs) <- measureQubits'' xs s
@@ -797,7 +794,7 @@ measureQubits' : {n : Nat} -> {i : Nat} ->
 measureQubits' [] qs = pure1 (qs # [])
 measureQubits' (x :: xs) qs = 
   let (qs' # q) # y = listIndex qs x in
-    let (q, k) = qubitToNatPair q in 
+    let () = consumeQubit q in
       do
       (s # b)<- measure' y qs'
       (MkSimulatedOp stfin unfin vfin counter # bs) <- measureQubits'' xs s
@@ -1319,13 +1316,13 @@ RunUnitaryOp UnitaryMatrix where
 
 --- Due to the smae thng as above, Idris2 not figuring out equivalences of power x 0 = 1 automatically, this has to be done in a different way here.
 
-export
+private
 neutralRunM : {n:Nat} -> (1_ : UStateT (UnitaryMatrix 0) (UnitaryMatrix n) (LVect n Qubit)) -> UnitaryMatrix n
 neutralRunM ust = let op # lvect = runUStateT (idU {n = Z}) ust in
                         let () = discardq lvect in
                           op                      
 
-public export
+private
 exportUnitaryMatrixSelf : {i:Nat} -> (1_: UnitaryMatrix n) -> (1 _ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect i Qubit) ) -> (UnitaryMatrix n) 
 exportUnitaryMatrixSelf un ust = let op # lvect = runUStateT un ust in
                                       let () = discardq lvect in
@@ -1387,7 +1384,7 @@ applyUMSTSimulatedR_Qudit :
   UStateT (QuditUM base n) (QuditUM base n) (LVect i Qubit)
 applyUMSTSimulatedR_Qudit ust = MkUST (applyUMSTR_Qudit' ust)
 
-public export
+private
 neutralRunQuditUM :
   {base : Nat} -> {n : Nat} ->
   (1 _ : UStateT (QuditUM base 0) (QuditUM base n) (LVect n Qubit)) ->

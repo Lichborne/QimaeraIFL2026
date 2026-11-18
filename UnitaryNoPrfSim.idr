@@ -65,7 +65,7 @@ private
 applyControlSimulated': {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1_ : LVect i Qubit) -> (1_ : UnitaryNoPrf i) ->
     (1_ : UnitaryNoPrf (S n)) -> LPair (UnitaryNoPrf (S n)) (LVect (S i) Qubit)
 applyControlSimulated' {n} {i} c ts ui usn = 
-  let (c, k) = qubitToNatPair c in
+  let c # k = qubitToNatPair c in
     let lvOut # targets = distributeDupedLVectVect ts in 
       let usnOut=  (UnitaryNoPrf.apply (controlled ui) usn (k::targets)) in
         usnOut # (c :: lvOut)
@@ -112,7 +112,7 @@ applyUnitaryNoPrfAbsSplitSimulated ust = MkUST (applyUnitaryNoPrfAbsSplit' ust)
 applyControlledUSplitSim' : {i:Nat} -> {j:Nat} -> {n : Nat} -> (1 _ : Qubit) -> (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LPair (LVect i Qubit) (LVect j Qubit)))
                              -> (1_ : UnitaryNoPrf (S n)) -> LPair (UnitaryNoPrf (S n)) (LPair (LVect (S (i)) Qubit) (LVect j Qubit))
 applyControlledUSplitSim' q ust (usn)= 
-  let (q, k) = qubitToNatPair q in
+  let q # k = qubitToNatPair q in
     let un # (lvLeft # lvRight) = runUStateT (IdGate {n = n}) ust in
       let lvMid # vect = distributeDupedLVectVect (lvLeft ++ lvRight) in
         let lvOutL # lvOutR = splitLVinto i j lvMid in 
@@ -183,7 +183,7 @@ export
 adjointUSTNoPrf' :  {n:Nat} ->  (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit)) -> (UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit))
 adjointUSTNoPrf' ust = MkUST (invertNoPrf ust)
 
-export
+private
 neutralRun' : {n:Nat} -> (1_ : UStateT (UnitaryNoPrf 0) (UnitaryNoPrf n) (LVect n Qubit)) -> UnitaryNoPrf n
 neutralRun' ust = let op # lvect = runUStateT (IdGate {n = 0}) ust in
                         let () = discardq lvect in
@@ -217,7 +217,7 @@ controlUST': {n : Nat} -> {i : Nat} -> (1 control : Qubit) -> (1 locations : LVe
                    (targetPattern : ((1_ :LVect i Qubit) -> UStateT (UnitaryNoPrf i) (UnitaryNoPrf i) (LVect i Qubit)))
                    -> (1_ :UnitaryNoPrf n) -> LPair (UnitaryNoPrf n) (LVect (S i) Qubit)
 controlUST' {n} {i} ctrl locs targetP un = let u = buildUnitaryNoPrf' {n = i} targetP in
-  let (q, c) = qubitToNatPair ctrl in
+  let q # c = qubitToNatPair ctrl in
   let qs # ts= distributeDupedLVectVect locs in
     let uc = controlled u in
       let unOut  = (UnitaryNoPrf.apply uc un (c::ts)) in
