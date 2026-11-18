@@ -51,17 +51,8 @@ mergeVects [] vect = lvectify vect
 mergeVects (x :: xs) [] = mergeVects xs []
 mergeVects (x :: xs) (y :: ys) = mergeVects xs (y::ys)
 
-||| merge linear vectors (used for deletion of duplicates)
-mergeLVects : (1 _ : LVect n Qubit) -> (1 _ : LVect i Qubit) -> (LVect i Qubit)
-mergeLVects [] [] = []
-mergeLVects [] lvect = lvect
-mergeLVects (xs) [] = mergeVects (toVectQ xs) []
-mergeLVects (xs) (ys) = mergeVects (toVectQ xs) (toVectQ ys)
 
-
-
-
-||| Implementation of run for SimulatedOp
+||| Depricared because Unsafe, but useful sometimes: Implementation of run for SimulatedOp
 public export
 run' : {i:Nat} -> (1_: SimulatedOp n) -> (1 _ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit) ) -> LPair (SimulatedOp n) (LVect i Qubit)
 run' {i = i} simop ust = runUStateT simop ust
@@ -234,25 +225,11 @@ adjointUST' ust = MkUST (invert ust)
 
 neutralOp : UnitaryOp t => {n : Nat} -> ((t n)) 
 
-neutralWithQubits : UnitaryOp t => {n : Nat} -> (1 _ : LVect n Qubit) -> (LPair (t n) (LVect n Qubit))
-
 ||| sequence with dummy (t n) used for only constructing unitaries
 runNeutral : UnitaryOp t =>  {n : Nat} -> (1_ : UStateT (t n) (t n) (LVect n Qubit) ) -> (LPair (t n) (LVect n Qubit))
 
 ||| sequence over a given vector of qubits in (t n) used for only constructing unitaries
 runNeutralAt : UnitaryOp t =>  {n : Nat} -> (1 _ : LVect n Qubit) -> (1_ : UStateT (t n) (t n) (LVect n Qubit) ) -> (LPair (t n) (LVect n Qubit))
-
-neutralWithQubits' : UnitaryOp t => {n : Nat} -> (1 _ : LVect n Qubit) -> LPair (SimulatedOp n) (LVect n Qubit) 
-neutralWithQubits' {n} lvect = let lvOut # v = distributeDupedLVectVect lvect in 
-  (MkSimulatedOp (neutralIdPow n) (IdGate {n = n}) (fromVectN v) n) # lvOut
-
-public export
-runNeutralAt' :  UnitaryOp t => {n : Nat} -> (1 _ : LVect n Qubit) -> (1 _ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect n Qubit) ) -> LPair (SimulatedOp n) (LVect n Qubit)
-runNeutralAt' {n} lvIn ust = 
-    let lvInt # vect = distributeDupedLVectVect lvIn in
-      let simOut # lv = runUStateT (MkSimulatedOp (neutralIdPow n) (IdGate {n = n}) (fromVectN vect) n) ust 
-          lvOut = mergeLVects lvInt lv in
-          simOut # lvOut
 
 ||| Apply the controlled version of a unitary in t n without explicit list (taking it from t n). Implementations assume control goes at head of qubit list
 ||| This requires that the ownUnitary be built so that it is applicable to the i qubits within n it is specified for

@@ -422,7 +422,7 @@ consLinQ (MkQubit Z) (x :: xs) = (MkQubit Z) :: x :: xs
 consLinQ ((MkQubit (S k))) [] = [MkQubit (S k)]
 consLinQ (MkQubit (S k)) (x :: xs) = (MkQubit (S k)) :: x :: xs  
 
-export
+private
 toVectQ : (1 _ : LVect n Qubit) -> (Vect n Qubit)
 toVectQ [] = []
 toVectQ ((MkQubit k):: xs) = (MkQubit k) `consLinQ` (toVectQ xs)
@@ -443,7 +443,7 @@ toVectN [] = []
 toVectN (MkQubit k :: xs) = (k) :: (toVectN xs)
 
 
-export
+private
 fromVectN : (Vect n Nat) -> (Vect n Qubit)
 fromVectN [] = []
 fromVectN (k :: xs) = (MkQubit k) :: (fromVectN xs)
@@ -462,7 +462,7 @@ unrestrictVec : (1 _ : Vect n Qubit) -> ((Vect n Qubit))
 unrestrictVec [] = unrestricted $ MkBang []
 unrestrictVec (x :: xs) =  (unrestricted $ MkBang (x)) :: (unrestricted $ MkBang (unrestrictVec xs))
 
-export
+private
 toVectUnr : (1 _ : LVect n Qubit) -> ((Vect n Qubit))
 toVectUnr any = unrestrictVec (toVectQ any)
 
@@ -496,7 +496,7 @@ removeElem (x :: xs) (S k) = case xs of
                                   y :: ys => x :: removeElem xs k
 
 ||| make a neutral (0 to n) qubit vector
-export
+private
 makeNeutralVect' : (n:Nat) -> Vect n Qubit
 makeNeutralVect' Z = []
 makeNeutralVect' (S k) = (MkQubit k) :: makeNeutralVect' k
@@ -526,7 +526,7 @@ export
 qubitToNatPair : (1_ : Qubit) -> Pair Qubit Nat 
 qubitToNatPair (MkQubit q) = ((MkQubit q), q)
 
-export
+private
 distributeDupedLVect : (1 _ : LVect i Qubit) -> LPair (LVect i Qubit) (LVect i Qubit) 
 distributeDupedLVect [] = [] # []
 distributeDupedLVect (MkQubit k :: xs) = 
