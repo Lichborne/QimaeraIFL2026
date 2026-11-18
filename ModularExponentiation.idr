@@ -20,31 +20,26 @@ import UnitaryNoPrfSim
 
 ------------------------Quantum Modular Exponentiation------------------------
 
-||| This file contains the implementation of QME
-||| The first few functions are defined using two approaches, 
-||| with the alternate version found at the bottom.
-||| One, where the computationally most relevant set of qubits
-||| for a given function is separated out throughout the implementation,
-||| and one where everyting is done as usual. This is to be able to
-||| compare if the former works as intended. The final implementation is given using this.
+||| This file contains the implementation of QME following Beauregard,
+||| "Circuit for Shor's algorithm using 2n+3 qubits" (2003). As in the paper,
+||| a and N are classical numbers built into the circuit: everything that
+||| depends only on them (a^p mod N, a^(-1) mod N, 2^k a mod N) is computed
+||| classically while the circuit is built, and the quantum registers are the
+||| control c, an ancilla, x (i qubits) and b (i + 1 qubits).
+||| The in-place QFT adder of two quantum registers is kept as a separate example.
 
 
 
---------------- CLASSICAL modular inverse when we know gcd = 1 ---------------
+--------------- CLASSICAL preprocessing ---------------
 
-||| An implementation of this is necessary for the below quantum implementation
-||| to be feasible (for calculating a^-1 mod N as well as a^n mod N, when we
-||| know gcd = 1) This is only utilized at the very end, but reference is made 
-||| to it for design choices (see also Beauregard 2002)
+||| a^n mod N and its inverse mod N (which exists when gcd(a, N) = 1) are
+||| computed classically and built into the circuit, as in Beauregard.
 
 ------------------------------------------------------------------------------
 
 toIntegerNat : Nat -> Integer
 toIntegerNat Z = 0
 toIntegerNat (S k) = 1 + toIntegerNat k
-
-abs : Integer -> Integer 
-abs x = if x >= 0 then x else x + (2 * (-x))
 
 extgcd : Integer -> Integer -> Pair Integer Integer
 extgcd 0 b = (0, 1)
@@ -53,15 +48,30 @@ extgcd a b = let
                 x = y' - (b `div` a) * x'
                 y = x'
               in (x, y)
-    
-modInverse : Nat -> Nat -> Nat
-modInverse a m = fromInteger $ abs $ fst $ extgcd (toIntegerNat a) (toIntegerNat m)
 
----------------IN-PLACE QFT ADDER---------------
-||| Expects inputs in big-endian order 
+||| a^(-1) mod m, for gcd(a, m) = 1
+export
+modInverse : Nat -> Nat -> Nat
+modInverse a m = let x = fst $ extgcd (toIntegerNat a) (toIntegerNat m)
+                     r = x `mod` toIntegerNat m
+                 in fromInteger (if r < 0 then r + toIntegerNat m else r)
+
+||| a^e mod m, by repeated squaring
+export
+powMod : Nat -> Nat -> Nat -> Nat
+powMod a e m = go (a `mod` m) e (1 `mod` m) where
+  go : Nat -> Nat -> Nat -> Nat
+  go b Z acc = acc
+  go b e acc = go ((b * b) `mod` m) (e `div` 2) (if e `mod` 2 == 1 then (acc * b) `mod` m else acc)
+
+
+---------------IN-PLACE QFT ADDER (two quantum registers)---------------
+||| Expects inputs in big-endian order; b has one more qubit than a, its first
+||| qubit taking the overflow: |a>|b> -> |a>|(b + a) mod 2^(i+1)>.
 -----------------------------------------------
 
 
+||| a_0, a_1, ... control R_m, R_(m+1), ... on the qubit b
 addWithQFTHelp : UnitaryOp t => {k : Nat} -> {n: Nat} -> (1_ : LVect k Qubit) 
                                     -> (1_ : Qubit) -> (m : Nat) -> UStateT (t n) (t n) ((LVect (S k) Qubit))
 addWithQFTHelp LinearTypes.Nil b _ = pure $ [b]
@@ -70,14 +80,21 @@ addWithQFTHelp (a::as) b m = do
     b::as <- addWithQFTHelp as b (S m)
     pure $ (b::a::as)
 
+||| Adds a to b (both i qubits, b in Fourier space): b_k gets R_1 from a_k, R_2 from a_(k+1), ...
+addAligned : UnitaryOp t => {i: Nat} -> {n : Nat} -> (1_ : LVect i Qubit) -> (1_ : LVect i Qubit) -> UStateT (t n) (t n) (LPair (LVect i Qubit) (LVect i Qubit))
+addAligned [] [] = pure ([] # [])
+addAligned (a :: as) (b :: bs) = do
+   (b :: a :: as) <- addWithQFTHelp (a :: as) b 1
+   as # bs <- addAligned as bs
+   pure ((a :: as) # (b :: bs))
+
+||| Adds a (i qubits) to b (i + 1 qubits, in Fourier space): the overflow qubit of b
+||| gets R_2, R_3, ... from a; the remaining i qubits of b are aligned with a.
 addWithQFT: UnitaryOp t => {i: Nat} -> {n : Nat} -> (1_ : LVect i Qubit) -> (1_ : LVect (S i) Qubit) -> UStateT (t n) (t n) ((LVect  (i + S i)  Qubit))
-addWithQFT [] b = pure $ b
-addWithQFT a [] impossible
-addWithQFT {i = S k} (a :: as) (b::bs) = do
-   (b::a::as) <-  addWithQFTHelp (a :: as) b 1
-   asbs <-  addWithQFT as bs   
-   as # bs <- splitQubitsInto k (S k) asbs 
-   pure $ (++) (a :: as) (b::bs)    
+addWithQFT as (b :: bs) = do
+   (b :: as) <- addWithQFTHelp as b 2
+   as # bs <- addAligned as bs
+   pure $ (++) as (b::bs)
 
 ||| Split version of the in-place adder. 
 export
@@ -107,165 +124,111 @@ export
 inPlaceQFTAdderInv : UnitaryOp t => {i: Nat} -> {n : Nat} -> (1_ : LVect (i + S i) Qubit) -> UStateT (t n) (t n) ((LVect (i + S i) Qubit))
 inPlaceQFTAdderInv lv = adjointUST $ inPlaceQFTAdder lv
 
-inPlaceQFTAdderInvSplit : UnitaryOp t => {i: Nat} -> {n : Nat} -> (1_ : LVect i Qubit) -> (1_ : LVect (S i) Qubit) -> UStateT (t n) (t n) (LPair (LVect i Qubit) (LVect (S i) Qubit))
-inPlaceQFTAdderInvSplit {n = n} {i = i} as bs = do
-    asbs <- combine as bs
-    addAsBs <- inPlaceQFTAdderInv asbs
-    as # bs <- splitQubitsInto i (S i) addAsBs
-    pure (as # bs)
-
----------------IN-PLACE MODULAR ADDER---------------       
-
+---------------CONSTANT ADDER IN FOURIER SPACE (Beauregard's phiADD(a))---------------
+||| b is a register of k qubits in Fourier space (after qft; big-endian). There its
+||| first qubit carries the phase 2 pi b / 2^k, the next 2 pi b / 2^(k-1), and so on,
+||| so adding the classical number a is one phase gate per qubit: b -> (b + a) mod 2^k.
 export
-inPlaceModularAdder : UnitaryOp t => {i: Nat} -> {n : Nat} 
-                                -> (1 controls : LVect 2 Qubit) -- these are the controls c1 and c2
-                                -> (1 ancilla : LVect 1 Qubit) -- this is the additional ancilla
-                                -> (1 a : LVect i Qubit) -- this is a represented in i Qubits
-                                -> (1 bigN : LVect i Qubit) -- this is N represented in i Qubits
-                                -> (1 b : LVect (S i) Qubit) -- this is b plus the required additional qubit as the last qubit
-                                -> UStateT (t (S (S n))) (t (S (S n))) (LPair (LVect (3 + i + i)  Qubit) (LVect ((S i)) Qubit)) -- we collect the 2 controls, ancilla, a, and N in the same output LVect, and b in the other
+phiAdd : UnitaryOp t => {n : Nat} -> {k : Nat} -> (a : Nat) -> (1 _ : LVect k Qubit) -> UStateT (t n) (t n) (LVect k Qubit)
+phiAdd a [] = pure []
+phiAdd {k = S j} a (q :: qs) = do
+    [q] <- phase (a `mod` power 2 (S j)) (S j) q
+    qs <- phiAdd a qs
+    pure (q :: qs)
+  where
+    ||| P(2 pi m / 2^k), or nothing if m = 0
+    phase : (m : Nat) -> (k : Nat) -> (1 _ : Qubit) -> UStateT (t n) (t n) (LVect 1 Qubit)
+    phase Z k q = pure [q]
+    phase m k q = applyP (2 * pi * cast m / cast (power 2 k)) q
 
-inPlaceModularAdder [c1,c2] [ancilla] [] [] [q] = pure $ (c1::c2::[ancilla]) # [q]
-inPlaceModularAdder {i = S k} {n} [c1,c2] [ancilla] (a::as) bigNs (b::bs) = do
-    asbs <- combine (a::as) (b::bs)
-    (c1::c2::asbs)<- multipleControlUST [c1,c2] asbs (inPlaceQFTAdder  {n = S k + S (S k)} {i = S k})
-    as # bs <- splitQubitsInto (S k) (S (S k)) asbs
-    bigNs # bs <-  inPlaceQFTAdderInvSplit bigNs (bs)
-    (s::qibs) <- (qftAdj (bs)) -- the most signigifact bit in out case will be the first, which is where the overflow goes, so this is our control
-    [s,ancilla] <- applyCNOT s ancilla
-    invqftbs <- (qft (s::qibs))
-    toAddInv <- combine bigNs invqftbs
-    ancilla::bigNs_bs <- controlUST ancilla toAddInv (inPlaceQFTAdderInv {n = S k + S (S k)}  {i = S k})
-    bigNs # bs <- splitQubitsInto (S k) (S (S k)) bigNs_bs
-    asbs <- combine (as) (bs)
-    (c1::c2::asbs) <- multipleControlUST [c1,c2] asbs (inPlaceQFTAdder {n = S k + S (S k)}  {i = S k})
-    as # bs <- splitQubitsInto (S k) (S (S k)) asbs
-    (s::qibs) <- (qftAdj (bs))
-    [s] <- applyUnitary [s] XGate
-    [s,ancilla] <- applyCNOT s ancilla
-    [s] <- applyUnitary [s] XGate
-    invqftbs <- (qft (s::qibs))
-    asbs <- combine (as) (invqftbs)
-    (c1::c2::asbs) <-  multipleControlUST [c1,c2] asbs (inPlaceQFTAdder {n = S k + S (S k)} {i = S k})
-    as # bs <- splitQubitsInto (S k) (S (S k)) asbs
-    aAndN <- combine as bigNs
-    pure $ ((++) (c1::c2::[ancilla]) aAndN) # (bs)
-
-
----------------IN-PLACE MODULAR MULTIPLIER---------------
-
-||| Helper function that does the reursion on x, using each bit as control. 
-allControls: UnitaryOp t => {j:Nat} -> {i: Nat} -> {n : Nat} -> {auto prf: LTE j i} -- This is somewhat superfluous, because we can handle other inputs as well it just won't make sense anyway. if we remove this there is only 1 proof required
-                                -> (1 c : LVect 1 Qubit) -- this is the control c
-                                -> (1 ancilla : LVect 1 Qubit) -- this is the additional ancilla for the addition operation
-                                -> (1 x : LVect j Qubit) -- this is x represented in j qubits
-                                -> (1 a : LVect i Qubit) -- this is a represented in i qubits
-                                -> (1 bigN : LVect i Qubit) -- this is N represented in i qubits
-                                -> (1 b : LVect (S i) Qubit) -- this is b plus the required additional qubit as the last qubit
-                                -> UStateT (t (S (S n))) (t (S (S n))) (LPair (LVect (2 + j + i + i)  Qubit) (LVect ((S i)) Qubit))
-allControls [c] [ancilla] [] [] [] q = pure $ [c, ancilla] # q
-allControls [_] [_] [] (x :: xs) (ns::bigNs) [] impossible -- for some reason idris wants this case
-allControls [c] [ancilla] (x:: xs) [] [] [q] impossible -- because of the way b is set up, the control wont be relevant for the additiona qubit anywa; this should not happen (condition LT j i is excluded for simplicity)
-allControls [c] [ancilla] (x::xs) [] [] [q] impossible -- for some reason, needs separate case
-allControls [c] [ancilla] [] (a::as) (ns::bigNs) (b::bs)= do ---for some reason, idris needs the (::) operators here to recognize coverage, again...
-    aAndN <- combine (a::as) (ns::bigNs)
-    pure $ ((++) (c::[ancilla]) aAndN) # (b::bs)
-allControls {prf} {j = S r} {i = S h} [c] [ancilla] (x::xs) a bigNs b = do
-    (c::x::ancilla::aAndN) # b2 <- inPlaceModularAdder [c,x] [ancilla] a bigNs b
-    a # bigNs <- splitQubitsAt {prf = lteSiPlusSi} (S h) aAndN -- the compiler sometimes finds this sometimes doesnt
-    (c::ancilla::all) # finalb <- allControls {j = r} {i = S h} {prf = fromLteSucc $ lteSuccRight prf} [c] [ancilla] (xs) a (rewrite sym $ plusMinusLeftCancel0 h (S h) in bigNs) b2 ---ONE PROOF is necessary, the other depends on the LT condition
-    pure $ (c::ancilla::x::all) # finalb 
-
-|||Intermediaty multiplication function, output is (b+ax) mod N if c=1 else b
-cMultAModN: UnitaryOp t => {i: Nat} -> {n : Nat}
-                                -> (1 c : LVect 1 Qubit) -- this is the control c
-                                -> (1 ancilla : LVect 1 Qubit) -- this is the additional ancilla for the addition operation
-                                -> (1 x : LVect i Qubit) -- this is x represented in i qubits 
-                                -> (1 a : LVect i Qubit) -- this is a represented in i qubits
-                                -> (1 bigN : LVect i Qubit) -- this is N represented in i qubits
-                                -> (1 b : LVect (S i) Qubit) -- this is b plus the required additional qubit as the last qubit
-                                -> UStateT (t (S (S n))) (t (S (S n))) (LPair (LVect (2 + i + i + i)  Qubit) (LVect ((S i)) Qubit))
-cMultAModN [c] [ancilla] [] [] [] [q] = pure $ [c,ancilla] # [q]
-cMultAModN [_] [_] [] [] [] [] impossible
-cMultAModN [c] [ancilla] (xs) (as) (bigNs) (bs) = do
-    qftb <- (qft (bs))
-    middleAll # middleB <- allControls [c] [ancilla] (xs) (as) (bigNs) qftb
-    finalB <- (qftAdj middleB)
-    pure $ middleAll # finalB
-
-|||in place modular multiplication function
-inPlaceModExp: UnitaryOp t => {i: Nat} -> {n : Nat}
-                                -> (1 c : LVect 1 Qubit) -- this is the control c
-                                -> (1 ancilla : LVect 1 Qubit) -- this is the additional ancilla for the addition operation
-                                -> (1 x : LVect i Qubit) -- this is x represented in j qubits
-                                -> (1 a : LVect i Qubit) -- this is a represented in i qubits
-                                -> (1 amodinv : LVect i Qubit) -- this is a^(-1) mod N represented in i qubits. The classical algorithm for calculating this
-                                                        -- from a is included above given the theoretical assurances in Beuregard
-                                                        -- Note that since the content of the registers has to be prepared elsewhere, this is perfectly fine to assume
-                                -> (1 bigN : LVect i Qubit) -- this is N represented in i qubits
-                                -> (1 nils : LVect (S i) Qubit) -- this should be |0>(S n) because we are actually trying to calculate (ax mod N)
-                                -> UStateT (t (S (S n))) (t (S (S n))) (LPair (LVect (2 + i + i + i + i)  Qubit) (LVect (S i) Qubit)) -- this time x contains the computationally relevant bit so that is given back separately
-inPlaceModExp [c] [ancilla] [] [] [] [] [q] = pure $ [c,ancilla] # [q]
-inPlaceModExp [_] [_] [] [] [] [] [] impossible
-inPlaceModExp {i = S h} [c] [ancilla] (xs) (as) (asmodinv) (bigNs) (nils) = do
-    (c::ancilla::cmulted) # (ovf::multnils) <- cMultAModN [c] [ancilla] xs as bigNs nils -- 
-    xs # aAndN <- splitQubitsAt {prf = lteSiPlusPlusSi {i = h}} (S h) cmulted -- Proof 
-    as # bigNs <- (splitQubitsAt {prf = plusMinusLeftCancelDeep {h = h}} (S h) aAndN) -- Proof
-    xs_multnils <- combine xs multnils
-    c::maybexs_maybenils <- controlUST c (xs_multnils) (swapRegistersByLength {n = (S h) + (S h)} {i = S h} {j = S h})
-    maybexs # maybenils <- splitQubitsInto (S h) (S h) maybexs_maybenils
-    (c::ancilla::all) # finalb <- (cMultAModN [c] [ancilla] (maybexs) (asmodinv) (rewrite sym $ minusminusplusplusSH {h = h} in bigNs) (ovf::maybenils)) -- Proof 
-    pure $ (++) (c::ancilla::all) as # finalb
-
--- Now, as per Beauregard, we can classically calculate a^n mod N (see implementation above as illustration), and feed that in instead of a
--- therefore, we are done
-
----------------MODULAR EXPONENTIATION---------------
-
---This then is just calling the modular multiplication with a = a^n, and a^(-1) mod N = a^n^(-1) mod N.
--- What we do want, however, is to move the output, which is in x, into one of the output vectors by itself, as opposed to bs, this time
+---------------MODULAR ADDER (Beauregard's doubly controlled phiADD(a)MOD(N))---------------
+||| b has i + 1 qubits (the first takes the overflow) and is in Fourier space before and
+||| after. If both controls are set, b -> (b + a) mod N; otherwise b is unchanged.
+||| Requires a < N, b < N and N < 2^i; the ancilla starts and ends in |0>.
 export
-inPlaceModularExponentiation: UnitaryOp t => {i: Nat} -> {n : Nat}
+phiAddModN : UnitaryOp t => {n : Nat} -> {i : Nat} -> (a : Nat) -> (bigN : Nat)
+          -> (1 c1 : Qubit) -> (1 c2 : Qubit) -> (1 ancilla : Qubit) -> (1 b : LVect (S i) Qubit)
+          -> UStateT (t n) (t n) (LVect (3 + S i) Qubit)
+phiAddModN a bigN c1 c2 ancilla b = do
+    (c1 :: c2 :: b) <- multipleControlUST [c1, c2] b (phiAdd a)    -- b + a
+    b <- adjointUST (phiAdd bigN b)                                 -- b + a - N
+    (s :: bs) <- qftAdj b
+    [s, ancilla] <- applyCNOT s ancilla                             -- ancilla = 1 iff b + a < N
+    b <- qft (s :: bs)
+    (ancilla :: b) <- controlUST ancilla b (phiAdd bigN)            -- (b + a) mod N
+    (c1 :: c2 :: b) <- multipleControlUST [c1, c2] b (\qs => adjointUST (phiAdd a qs))
+    (s :: bs) <- qftAdj b                                           -- (b + a) mod N - a < 0 iff ancilla = 0
+    [s] <- applyUnitary [s] XGate
+    [s, ancilla] <- applyCNOT s ancilla                             -- so this resets the ancilla
+    [s] <- applyUnitary [s] XGate
+    b <- qft (s :: bs)
+    (c1 :: c2 :: b) <- multipleControlUST [c1, c2] b (phiAdd a)    -- (b + a) mod N
+    pure (c1 :: c2 :: ancilla :: b)
+
+---------------CONTROLLED MODULAR MULTIPLIER (Beauregard's CMULT(a)MOD(N))---------------
+
+||| Adds (2^k a mod N) x_k, controlled by c, for each qubit x_k of x (big-endian, so the
+||| first of j qubits has weight 2^(j-1)). b is in Fourier space; requires b < N.
+phiMultAdd : UnitaryOp t => {n : Nat} -> {j : Nat} -> {i : Nat} -> (a : Nat) -> (bigN : Nat)
+          -> (1 c : Qubit) -> (1 ancilla : Qubit) -> (1 x : LVect j Qubit) -> (1 b : LVect (S i) Qubit)
+          -> UStateT (t n) (t n) (LPair (LVect 2 Qubit) (LPair (LVect j Qubit) (LVect (S i) Qubit)))
+phiMultAdd a bigN c ancilla [] b = pure ([c, ancilla] # ([] # b))
+phiMultAdd {j = S k} a bigN c ancilla (x :: xs) b = do
+    (c :: x :: ancilla :: b) <- phiAddModN ((power 2 k * a) `mod` bigN) bigN c x ancilla b
+    [c, ancilla] # (xs # b) <- phiMultAdd a bigN c ancilla xs b
+    pure ([c, ancilla] # ((x :: xs) # b))
+
+||| On c, ancilla, x (i qubits), b (i + 1 qubits): b -> (b + a x) mod N if c is set.
+||| Requires b < N; the ancilla starts and ends in |0>.
+export
+cMultModN : UnitaryOp t => {n : Nat} -> {i : Nat} -> (a : Nat) -> (bigN : Nat)
+         -> (1 _ : LVect (2 + i + S i) Qubit) -> UStateT (t n) (t n) (LVect (2 + i + S i) Qubit)
+cMultModN a bigN (c :: ancilla :: xb) = do
+    x # b <- splitQubitsInto i (S i) xb
+    b <- qft b
+    [c, ancilla] # (x # b) <- phiMultAdd a bigN c ancilla x b
+    b <- qftAdj b
+    pure (c :: ancilla :: (x ++ b))
+
+---------------CONTROLLED SWAP---------------
+
+||| Swaps two registers with three CNOTs per pair of qubits. Unlike reordering the
+||| output vector (swapRegistersByLength), this is a circuit, so it can be controlled.
+swapRegisterGates : UnitaryOp t => {n : Nat} -> {i : Nat} -> (1 _ : LVect i Qubit) -> (1 _ : LVect i Qubit) -> UStateT (t n) (t n) (LPair (LVect i Qubit) (LVect i Qubit))
+swapRegisterGates [] [] = pure ([] # [])
+swapRegisterGates (p :: ps) (q :: qs) = do
+    [p, q] <- applyCNOT p q
+    [q, p] <- applyCNOT q p
+    [p, q] <- applyCNOT p q
+    ps # qs <- swapRegisterGates ps qs
+    pure ((p :: ps) # (q :: qs))
+
+swapHalves : UnitaryOp t => {n : Nat} -> {i : Nat} -> (1 _ : LVect (i + i) Qubit) -> UStateT (t n) (t n) (LVect (i + i) Qubit)
+swapHalves qs = do
+    ps # rs <- splitQubitsInto i i qs
+    ps # rs <- swapRegisterGates ps rs
+    pure (ps ++ rs)
+
+---------------CONTROLLED MODULAR MULTIPLICATION (Beauregard's controlled U_a)---------------
+
+||| |c>|x>|0> -> |c>|a x mod N>|0> if c is set, otherwise unchanged. Requires x < N,
+||| aInv = a^(-1) mod N and N < 2^i; the ancilla starts and ends in |0>.
+||| Returns c, the ancilla and b (whose i + 1 qubits are back to |0>), and then x.
+export
+inPlaceModularExponentiation : UnitaryOp t => {n : Nat} -> {i : Nat} -> (a : Nat) -> (aInv : Nat) -> (bigN : Nat)
                                 -> (1 c : LVect 1 Qubit) -- this is the control c
                                 -> (1 ancilla : LVect 1 Qubit) -- this is the additional ancilla for the addition operation
-                                -> (1 x : LVect i Qubit) -- this is x represented in j qubits
-                                -> (1 an : LVect i Qubit) -- this is a^n represented in i qubits
-                                -> (1 anmodinv : LVect i Qubit) -- this is a^n^(-1) mod N represented in i qubits. The classical algorithm for calculating this
-                                                        -- from a is included above given the theoretical assurances in Beuregard
-                                                        -- Note that since the content of the registers has to be prepared elsewhere, this is perfectly fine to assume
-                                -> (1 bigN  : LVect i Qubit) -- this is N represented in i qubits
-                                -> (1 nils : LVect (S i) Qubit) -- this should be |0>(S n) because we are actually trying to calculate (ax mod N)
-                                -> UStateT (t (S (S n))) (t (S (S n))) (LPair (LVect (3 + i + i + i + i) Qubit) (LVect (i) Qubit))
-inPlaceModularExponentiation [c] [ancilla] [] [] [] [] [q] = pure $ [c,ancilla,q] # []
-inPlaceModularExponentiation [_] [_] [] [] [] [] [] impossible
-inPlaceModularExponentiation {i = S h} [c] [ancilla] (xs) (ans) (asnmodinv) (bigNs) (nils) = do
-    (rest) # (ovf::bs) <- inPlaceModExp [c] [ancilla] (xs) (ans) (asnmodinv) (bigNs) (nils)
-    (c::ancilla::xs) # restrest <- splitQubitsInto {prf = plusSheq h} (S (S (S h))) (plus (plus (S h) (S h)) (S h)) rest
-    all <- combine {i = S h} bs restrest
-    finall <- combine {i = 3} (c::ancilla::[ovf]) (all)
-    (pure $ (rewrite sym $ plusthreeSeq h in finall) # xs) -- IF the types are given carefully, then this proof is unnecessary! See below.
-
----------------MODULAR EXPONENTIATION No PRF---------------
-
-inPlaceModularExponentiationNoPrf: UnitaryOp t => {i: Nat} -> {n : Nat}
-                                -> (1 c : LVect 1 Qubit) -- this is the control c
-                                -> (1 ancilla : LVect 1 Qubit) -- this is the additional ancilla for the addition operation
-                                -> (1 x : LVect i Qubit) -- this is x represented in j qubits
-                                -> (1 an : LVect i Qubit) -- this is a^n represented in i qubits
-                                -> (1 anmodinv : LVect i Qubit) -- this is a^n^(-1) mod N represented in i qubits. The classical algorithm for calculating this
-                                                        -- from a is included above given the theoretical assurances in Beuregard
-                                                        -- Note that since the content of the registers has to be prepared elsewhere, this is perfectly fine to assume
-                                -> (1 bigN : LVect i Qubit) -- this is N represented in i qubits
-                                -> (1 nils : LVect (S i) Qubit) -- this should be |0>(S n) because we are actually trying to calculate (ax mod N)
-                                -> UStateT (t (S (S n))) (t (S (S n))) (LPair (LVect (S (S (S (i + (i + i + i))))) Qubit) (LVect (i) Qubit) )
-inPlaceModularExponentiationNoPrf [c] [ancilla] [] [] [] [] [q] = pure $ [c,ancilla,q] # []
-inPlaceModularExponentiationNoPrf [_] [_] [] [] [] [] [] impossible
-inPlaceModularExponentiationNoPrf {i = S h} [c] [ancilla] (xs) (ans) (asnmodinv) (bigNs) (nils) = do
-    (rest) # (ovf::bs) <- inPlaceModExp [c] [ancilla] (xs) (ans) (asnmodinv) (bigNs) (nils)
-    (c::ancilla::xs) # restrest <- splitQubitsInto {prf = plusSheq h} (S (S (S h))) (plus (plus (S h) (S h)) (S h)) rest
-    all <- combine {i = S h} bs restrest
-    finall <- combine {i = 3} (c::ancilla::[ovf]) (all)
-    (pure $ (finall) # xs)
+                                -> (1 x : LVect i Qubit) -- this is x represented in i qubits
+                                -> (1 nils : LVect (S i) Qubit) -- this should be |0>(S i): b, with the overflow qubit first
+                                -> UStateT (t n) (t n) (LPair (LVect (3 + i) Qubit) (LVect i Qubit))
+inPlaceModularExponentiation a aInv bigN [c] [ancilla] x nils = do
+    (c :: ancilla :: xb) <- cMultModN a bigN (c :: ancilla :: (x ++ nils))      -- b = a x mod N
+    x # (ovf :: b) <- splitQubitsInto i (S i) xb
+    (c :: xb) <- controlUST c (x ++ b) (swapHalves {i = i})                      -- x <-> b
+    x # b <- splitQubitsInto i i xb
+    (c :: ancilla :: xb) <- adjointUST (cMultModN aInv bigN (c :: ancilla :: (x ++ (ovf :: b))))  -- b = x - aInv (a x) mod N = 0
+    x # b <- splitQubitsInto i (S i) xb
+    pure ((c :: ancilla :: b) # x)
 
 
 --------------- Basic encoding on natural numbers  into register of size i --------------   
@@ -274,35 +237,10 @@ data Bit : Type where
     B0 : Bit
     B1 : Bit
 
-partial
-||| this shouldnt ever get inputs other than zero or one - idris unfortunately cannot recognize that there will be no other cases
-mod2toBin : Nat -> Bit
-mod2toBin any = case mod any 2 of 
-    Z => B0
-    (S Z) => B1
-
-
-partial
-||| this is in fact total, but the compiler does not recognize it
-natToBinList : (num : Nat) -> List Bit
-natToBinList Z = [B0]
-natToBinList (S Z) = [B1]
-natToBinList (S (S n)) = natToBinList (divNat (S (S n)) 2) ++ [mod2toBin (S (S n))]
-
-
-||| Take i elements from a list of Bits and turn them into a vector. 
-||| If the lest is empty, then we pas with zeros to the LEFT
-takeiBitListtoVectPadLeft : (i: Nat) -> List Bit -> Vect i Bit
-takeiBitListtoVectPadLeft Z any = []
-takeiBitListtoVectPadLeft (S k) [] = rewrite sym $ lemmaplusOneRight k in takeiBitListtoVectPadLeft k [] ++ [B0] -- if the list does not contain bits, then the recovered value is zero
-takeiBitListtoVectPadLeft (S k) (x::xs) = x :: (takeiBitListtoVectPadLeft  k xs)
-
-partial
-||| This is UNSAFE for convenience. Collects on the left.
+||| The i lowest bits of num, most significant first (big-endian, as everywhere in this file)
 natToBinIVect : (i: Nat) -> (num:Nat) -> Vect i Bit
 natToBinIVect Z _ = []
-natToBinIVect (S i) Z = takeiBitListtoVectPadLeft (S i) (natToBinList Z)
-natToBinIVect (S i) (S n) = takeiBitListtoVectPadLeft (S i) (natToBinList (S n))
+natToBinIVect (S k) num = (if (num `div` power 2 k) `mod` 2 == 1 then B1 else B0) :: natToBinIVect k num
 
 ||| Takes a vector of Bins and a vector of qubits expected to be in |0>^n, and returns the unitary operation of encoding the number in the qubits
 ||| helper for making the below more efficient
@@ -319,71 +257,55 @@ binVectToUnitaryI {i = S k} (x::xs) (q::qs) = case x of
         qss <- (binVectToUnitaryI xs qs)
         pure (q1 :: qss)
 
-partial -- because mod2ToBin is partial, and therefore natToBinList is partial, therefore natToBinIVect is partial. Could be made total.
 ||| Takes a Nat and a vector of qubits expected to be in |0>^n, and returns the unitary operation of encoding the number in the qubits
-||| It will truncate the number if the qubits are not enoguh to contain it, otherwise it will pad
+||| It keeps the i lowest bits of the number if the qubits are not enough to contain it, otherwise it pads with zeros on the left
 natToUnitaryI : UnitaryOp t => {i:Nat} -> {n:Nat} -> (num:Nat) -> (1_ : LVect i Qubit) -> UStateT (t n) (t n) (LVect i Qubit)
 natToUnitaryI _ [] = pure []
 natToUnitaryI Z (q::qs) = pure (q::qs)
 natToUnitaryI {i = (S k)} (S n) (q::qs) = binVectToUnitaryI (natToBinIVect (S k) (S n)) (q::qs)
 
-partial export
-||| modular exponentiation using QuantumOp and UnitaryOp
+export
+||| modular exponentiation using QuantumOp and UnitaryOp: prepares x, then applies
+||| x -> a^n x mod N, controlled by c (classical preprocessing: a^n mod N and its inverse)
 modularExponentiationOp: QuantumOp t => UnitaryOp t => 
                                                      (1_ : LVect 1 Qubit) -- the control, comes from a different computation, 
                                                     -> (i:Nat) -> (n:Nat) -> (x : Nat) -> (a:Nat) -> (bigN: Nat)
-                                                    -> QStateT (t 1) (t (2 + i + i + i + i + (S i))) ((LVect (3 + i + i + i + i + i) Qubit))
+                                                    -> QStateT (t 1) (t (2 + i + (S i))) ((LVect (3 + i + i) Qubit))
 modularExponentiationOp {t = t} c i n x a bigN = let 
-                                          an = power a n 
-                                          anmodinv = modInverse an
+                                          an = powMod a n bigN
+                                          anmodinv = modInverse an bigN
                                         in
                                             do 
                                                 ancilla <- newQubit {t = t} 
                                                 xs0 <- newQubits {t = t} i
                                                 xs <- applyUST {t = t} (natToUnitaryI x xs0)
-                                                asn0 <- newQubits {t = t} i
-                                                asn <- applyUST {t = t} (natToUnitaryI x asn0)
-                                                asmodinv0 <- newQubits {t = t} i
-                                                asmodinv <- applyUST {t = t} (natToUnitaryI x asmodinv0) 
-                                                bigNs0 <- newQubits {t = t} i
-                                                bigNs  <- applyUST {t = t} (natToUnitaryI x bigNs0)
                                                 bsZeros <- newQubits {t = t} (S i)
-                                                output <- applyUST (combineAbs $ inPlaceModularExponentiation c [ancilla] xs asn asmodinv bigNs bsZeros)
+                                                output <- applyUST (combineAbs $ inPlaceModularExponentiation an anmodinv bigN c [ancilla] xs bsZeros)
                                                 pure (output)
                                                       
 -------------------- Unitary part of QME test --------------------------
-%hint
-||| this is rather anoyingly needed for below; an alternative is 
-||| what is done for the algorithm with unitary reuse: a single input vector.
-natplusS : {n:Nat} -> Prelude.S (Prelude.S (plus (plus (plus (plus (plus 0 n) n) n) n) n)) = Prelude.S (plus (plus (plus (plus (plus 0 n) n) n) n) (Prelude.S n))
-natplusS {n} = rewrite plusSuccRightSucc ((plus (plus (plus (plus 0 n) n) n) n)) n in Refl
 
-
+||| The controlled multiplication x -> a x mod N as a Unitary on 2 + i + (i + 1) qubits:
+||| wires c, ancilla, then x, then b (overflow qubit first).
 export
-modularN : {n:Nat} -> Unitary (S (S (plus (plus (plus (plus (plus 0 n) n) n) n) (S n))))
-modularN {n} = runUnitaryOp {t=Unitary} (do
-        c <- supplyQubits 1--- recall that UnitaryOp can only ever get qubits from quantumOp, so we dont have to worry about whether the qubits will be distinct
-        ancilla <- supplyQubits 1
-        ans <- supplyQubits n
-        xs <- supplyQubits n
-        asnmodinv <- supplyQubits n
-        bigNs <- supplyQubits n
-        nils <- supplyQubits (S n)
-        out <-  applyUStateT (combineAbs $ inPlaceModularExponentiation c ancilla (xs) (ans) (asnmodinv) (bigNs) (nils))
-        pure (rewrite sym $ natplusS {n = n} in out))
+modularN : (i : Nat) -> (a : Nat) -> (bigN : Nat) -> Unitary (2 + i + S i)
+modularN i a bigN = buildUnitary {t = Unitary} (\qs => do
+        [c, ancilla] # rest <- splitQubitsInto 2 (i + S i) qs
+        x # nils <- splitQubitsInto i (S i) rest
+        (c :: ancilla :: b) # x <- inPlaceModularExponentiation a (modInverse a bigN) bigN [c] [ancilla] x nils
+        pure (c :: ancilla :: (x ++ b)))
 
-
-||| testing the unitary part of modular exponentiation
+||| testing the unitary part of modular exponentiation: 7 x mod 15
 export
-modularTestSmall : (Unitary 8)
-modularTestSmall = modularN {n = 1}
+modularTestSmall : (Unitary 11)
+modularTestSmall = modularN 4 7 15
 
-||| Larger test (takes a while)
+||| Larger test (takes a while): 33 qubits, N = 32399 = 179*181
 export
 modularTest : (Unitary 33)
-modularTest = modularN {n = 6}
-        
-        
+modularTest = modularN 15 7 32399
+
+||| Gate counts for the modular exponentiation circuit (modularTest) Takes a few minutes on a normal laptop
 modularTestGateCount: List Nat
 modularTestGateCount = let gate = modularTest in
     let gates = gateCount gate 
@@ -392,180 +314,15 @@ modularTestGateCount = let gate = modularTest in
         cnots = CNOTcount gate
         in [gates, hs, ps, cnots]
 
-        
+{-
+ modularTestGateCount
+[132694,
+6862,
+73776,
+52056]
+-}
+
+||| Optimisation and gatecount thereof of modularTest. This takes a long time.
 modularTestOpt : Nat
 modularTestOpt = gateCount (optimise modularTest)
 
-
-{-
- modularTestGateCount 
-[887836, 
-122212, 
-430104, 
-335520]
--}
-
---------- IN-PLACE MODULAR EXPONENTIATION : Reduced Recomputation ------------       
-||| due to the monadic style being very computationally intensive, 
-||| this does not actually help us too much.
-||| Idris frequently does this by itself if we use applyUnitary
-||| and outside definitions that are identical; this way, we enforce it
------------------------------------------------------------------------------
-
-export
-inPlaceModularAdderFast :  UnitaryOp t => {i: Nat} -> {n : Nat} 
-                                -> (1 controls : LVect 2 Qubit) -- these are the controls c1 and c2
-                                -> (1 ancilla : LVect 1 Qubit) -- this is the additional ancilla
-                                -> (1 a : LVect i Qubit) -- this is a represented in i Qubits
-                                -> (1 bigN : LVect i Qubit) -- this is N represented in i Qubits
-                                -> (1 b : LVect (S i) Qubit) -- this is b plus the required additional qubit as the last qubit
-                                -> UStateT (t (S (S n))) (t (S (S n))) (LVect (3 + i + i + (S i)) Qubit) -- we collect the 2 controls, ancilla, a, and N in the same output LVect, and b in the other
-
-inPlaceModularAdderFast [c1,c2] [ancilla] [] [] [q] = pure $ (c1::c2::ancilla::[q])
-inPlaceModularAdderFast {i = S k} {n} [c1,c2] [ancilla] (a::as) bigNs (b::bs) = 
-    let qftadder = (buildUnitary {t = Unitary} (inPlaceQFTAdder  {n = S k + S (S k)} {i = S k})) in
-    let qftadderInv = buildUnitary {t = Unitary} (inPlaceQFTAdderInv {n = S k + S (S k)} {i = S k}) in
-    let qft = buildUnitary {t = Unitary} (qft {n = S (S k)}) in
-    let revqft = adjoint qft in
-    do
-    asbs <- combine (a::as) (b::bs)
-    (c1::c2::asbs)<- applyUnitary (c1::c2::asbs) (multipleControlled 2 qftadder)
-    as # bs <- splitQubitsInto (S k) (S (S k)) asbs
-    bigNsbs <-   applyUnitary (bigNs++bs) qftadderInv
-    bigNs # bs <- splitQubitsInto (S k) (S (S k)) bigNsbs
-    (s::qibs) <-  applyUnitary (bs) revqft-- the most signigifact bit in out case will be the first, which is where the overflow goes, so this is our control
-    [s,ancilla] <- applyCNOT s ancilla
-    invqftbs <-  applyUnitary (s::qibs) qft
-    toAddInv <- combine bigNs invqftbs
-    ancilla::bigNs_bs <- applyUnitary (ancilla::toAddInv) (controlled qftadderInv)
-    bigNs # bs <- splitQubitsInto (S k) (S (S k)) bigNs_bs
-    asbs <- combine (as) (bs)
-    (c1::c2::asbs) <-  applyUnitary (c1::c2::asbs) (multipleControlled 2 qftadder)
-    as # bs <- splitQubitsInto (S k) (S (S k)) asbs
-    (s::qibs) <-   applyUnitary (bs) revqft
-    [s] <- applyUnitary [s] XGate
-    [s,ancilla] <- applyCNOT s ancilla
-    [s] <- applyUnitary [s] XGate
-    qftbs <-  applyUnitary (s::qibs) qft
-    asbs <- combine (as) (qftbs)
-    (c1::c2::asbs) <-  applyUnitary (c1::c2::asbs) (multipleControlled 2 qftadder)
-    as # bs <- splitQubitsInto (S k) (S (S k)) asbs
-    aAndN <- combine as bigNs
-    aAndNAndB <- combine  aAndN bs
-    pure $ ((++) (c1::c2::[ancilla]) aAndNAndB)
-
-
-inPlaceModularAdderSingle : UnitaryOp t => {i: Nat} -> {n : Nat} -> (1 qubits: LVect ((3 + i + i + (S i))) Qubit) -- these are the controls c1 and c2
-                               -> UStateT (t (S (S n))) (t (S (S n))) ((LVect (3 + i + i + (S i)) Qubit))
-inPlaceModularAdderSingle {i} qs = do
-    [c1,c2,anc] # rest1 <- splitQubitsInto 3 (i + i + (S i)) qs
-    a # rest2 <- splitQubitsInto i (i+(S i)) (rewrite plusAssociative' i i (S i) in rest1)
-    bigN # b <- splitQubitsInto i ((S i)) rest2
-    out <- inPlaceModularAdderFast [c1,c2] [anc] a bigN b
-    pure out
-
-||| Helper function that does the reursion on x, using each bit as control. 
-allControlsFast:  UnitaryOp t => {j:Nat} -> {i: Nat} -> {n : Nat} -> {auto prf: LTE j i} -- This is somewhat superfluous, because we can handle other inputs as well it just won't make sense anyway. if we remove this there is only 1 proof required
-                                -> (1 c : LVect 1 Qubit) -- this is the control c
-                                -> (1 ancilla : LVect 1 Qubit) -- this is the additional ancilla for the addition operation
-                                -> (1 x : LVect j Qubit) -- this is x represented in j qubits
-                                -> (1 a : LVect i Qubit) -- this is a represented in i qubits
-                                -> (1 bigN : LVect i Qubit) -- this is N represented in i qubits
-                                -> (1 b : LVect (S i) Qubit) -- this is b plus the required additional qubit as the last qubit
-                                -> (adder: Unitary (2 + 1+ i+ i +(S i))) -- adder supplied as tn from cMult
-                                -> UStateT (t (S (S n))) (t (S (S n))) (LPair (LVect (2 + j + i + i)  Qubit) (LVect ((S i)) Qubit))
-allControlsFast [c] [ancilla] [] [] [] q adder= pure $ [c, ancilla] # q
-allControlsFast [_] [_] [] (x :: xs) (ns::bigNs) [] adder impossible -- for some reason idris wants this case
-allControlsFast [c] [ancilla] (x:: xs) [] [] [q] adder impossible -- because of the way b is set up, the control wont be relevant for the additiona qubit anywa; this should not happen (condition LT j i is excluded for simplicity)
-allControlsFast [c] [ancilla] (x::xs) [] [] [q] adder impossible -- for some reason, needs separate case
-allControlsFast [c] [ancilla] [] (a::as) (ns::bigNs) (b::bs) adder = do ---for some reason, idris needs the (::) operators here to recognize coverage, again...
-    aAndN <- combine (a::as) (ns::bigNs)
-    pure $ ((++) (c::[ancilla]) aAndN) # (b::bs)
-allControlsFast {prf} {j = S r} {i = S h} [c] [ancilla] (x::xs) a bigNs b adder = do
-    cxa <- combine ([c,x]) [ancilla]
-    aAndN <- combine a bigNs
-    firsts <- combine cxa aAndN
-    toadd <- combine firsts b
-    (c::x::ancilla::aAndNAndB) <- applyUnitary toadd adder
-    aAndN # bs <- splitQubitsInto (S h + S h) ((S (S h))) aAndNAndB -- the compiler sometimes finds this sometimes doesnt {prf = lteSiPlusSi} 
-    a # bigNs <- splitQubitsInto (S h) ((S h)) aAndN
-    (c::ancilla::all) # finalb <- allControlsFast {j = r} {i = S h} {prf = fromLteSucc $ lteSuccRight prf} [c] [ancilla] (xs) a (bigNs) bs adder---ONE PROOF is necessary, the other depends on the LT condition
-    pure $ (c::ancilla::x::all) # finalb 
-
-adder :  UnitaryOp t => (i:Nat) -> t (3 + i + i + (S i))
-adder i = buildUnitary {n = (3 + i + i + (S i))} (inPlaceModularAdderSingle {i = i} )
-
-
-|||Intermediaty multiplication function, output is (b+ax) mod N if c=1 else b
-cMultAModNFast:  UnitaryOp t => {i: Nat} -> {n : Nat}
-                                -> (1 c : LVect 1 Qubit) -- this is the control c
-                                -> (1 ancilla : LVect 1 Qubit) -- this is the additional ancilla for the addition operation
-                                -> (1 x : LVect i Qubit) -- this is x represented in i qubits 
-                                -> (1 a : LVect i Qubit) -- this is a represented in i qubits
-                                -> (1 bigN : LVect i Qubit) -- this is N represented in i qubits
-                                -> (1 b : LVect (S i) Qubit) -- this is b plus the required additional qubit as the last qubit
-                                -> UStateT (t (S (S n))) (t (S (S n))) ((LVect (2 + i + i + i + S i) Qubit))
-cMultAModNFast [c] [ancilla] [] [] [] [q] = pure $ [c,ancilla,q]
-cMultAModNFast [_] [_] [] [] [] [] impossible
-cMultAModNFast {i = S k} [c] [ancilla] (xs) (as) (bigNs) (bs) = 
-    let qft = buildUnitary {t = Unitary} (qft {n = S (S k)}) in
-    let revqft = adjoint qft in
-    let adder = adder {t = Unitary} (S k) in
-    do
-    qftb <- applyUnitary (bs) qft
-    middleAll # middleB <- allControlsFast [c] [ancilla] (xs) (as) (bigNs) qftb adder
-    finalB <-  applyUnitary middleB revqft
-    pure $ middleAll ++ finalB
-
-
-cMultAModNSingle :  UnitaryOp t => {i: Nat} -> {n : Nat} -> (1 qubits: LVect ((2 + i + i + i + (S i))) Qubit) -- these are the controls c1 and c2
-                               -> UStateT (t (S (S n))) (t (S (S n))) ((LVect (2 + i + i + i + (S i)) Qubit))
-cMultAModNSingle {i} qs = do
-    [c1,c2] # rest <- splitQubitsInto 2 (i + i + i + (S i)) qs
-    x # rest1 <- splitQubitsInto i (i + i + (S i)) (rewrite plusAssociative' i (i+i) (S i) in rewrite plusCommutative' i (i+i) in rest)
-    a # rest2 <- splitQubitsInto i (i+(S i)) (rewrite plusAssociative' i i (S i) in rest1)
-    bigN # b <- splitQubitsInto i ((S i)) rest2
-    out <- cMultAModNFast [c1] [c2] x a bigN b
-    pure (out)
-
-cmult :  UnitaryOp t => (i:Nat) -> t (2 + i + i + i + (S i))
-cmult i = buildUnitary {n = (2 + i + i + i + (S i))} (cMultAModNSingle {i = i} )   
-
-|||in place modular multiplication function
-inPlaceModExpFast:  UnitaryOp t => {i: Nat} -> {n : Nat}
-                                -> (1 amodinv : LVect i Qubit)
-                                -> (1 all: LVect (2 + i + i + i + (S i)) Qubit)
-                                -> UStateT (t (S (S n))) (t (S (S n))) ((LVect (2 + i + i + i +(S i) + i)) Qubit) -- this time x contains the computationally relevant bit so that is given back separately
-inPlaceModExpFast [] [c,ancilla, q] = pure $ [c,ancilla,q]
-inPlaceModExpFast {i = S h} (asmodinv) all = 
-    let cmultmod = cmult {t = Unitary} (S h) in
-    do
-    (c::ancilla::rest) <-  applyUnitary all cmultmod
-    cmulted # (ovf::multnils) <- splitQubitsInto ((S h) + (S h) + (S h)) (S (S h)) rest
-    xs # aAndN <- splitQubitsInto (S h) (S h + S h) (rewrite plusAssociative' (S h) (S h) (S h) in cmulted) -- Proof 
-    as # bigNs <- (splitQubitsInto (S h) (S h) aAndN) -- Proof
-    xs_multnils <- combine xs multnils
-    c::maybexs_maybenils <- controlUST c (xs_multnils) (swapRegistersByLength {n = (S h) + (S h)} {i = S h} {j = S h})
-    maybexs # maybenils <- splitQubitsInto (S h) (S h) maybexs_maybenils
-    xsmod <- combine maybexs asmodinv
-    left <- combine xsmod bigNs
-    all <- combine left (ovf::maybenils)
-    (c::ancilla::rest) <- applyUnitary (c::ancilla::all) cmultmod-- Proof 
-    pure $ ((c::ancilla::rest) ++ as)
-
-
----For this development, we won't reorder the qubits, we will just buildinPlaceModExpFast: UnitaryOp t => {i: Nat} -> {n : Nat}
-inPlaceModSingle :  UnitaryOp t => {i: Nat} -> {n : Nat} -> (1 qubits: LVect (2 + i + i + i + (S i) + i) Qubit)
-                 -> UStateT (t (S (S n))) (t (S (S n))) ((LVect (2 + i + i + i +(S i) + i)) Qubit) -- this time x contains the computationally relevant bit so that is given back separately
-inPlaceModSingle qs = do
-    rest # asmodinv <- splitQubitsInto ( 2 + i + i + i + (S i)) i qs
-    out <- inPlaceModExpFast asmodinv rest
-    pure out
-
-export
-modUTest : (i:Nat) -> Unitary (2 + i + i + i +(S i) + i)
-modUTest i = buildUnitary {t = Unitary} inPlaceModSingle
-
-
-
-       
