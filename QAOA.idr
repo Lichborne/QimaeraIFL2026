@@ -6,16 +6,15 @@ import Graph
 import Lemmas
 import UnitaryLinear
 import Control.Linear.LIO
-import QStateT
+import Qimaera.QStateT
 import Injection
 import LinearTypes
 import Complex
 import System.Random
-import QuantumOp
+import Qimaera.QuantumOp
 import RandomUtilities
-import UStateT
-import BinarySimulatedOp
-
+import Qimaera.UStateT
+import Qimaera.BinarySimulatedOp
 %default total
 
 ||| Vanilla QAOA : we use QAOA with a vanilla optimisation procedure to solve MAXCUT.

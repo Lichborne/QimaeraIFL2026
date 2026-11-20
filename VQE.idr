@@ -5,17 +5,16 @@ import Data.Vect
 import UnitaryLinear
 import LinearTypes
 import Control.Linear.LIO
-import QStateT
+import Qimaera.QStateT
 import Injection
 import LinearTypes
 import Complex
 import System.Random
-import QuantumOp
+import Qimaera.QuantumOp
 import RandomUtilities
 import Lemmas
-import UStateT
-import BinarySimulatedOp
-
+import Qimaera.UStateT
+import Qimaera.BinarySimulatedOp
 %search_timeout 1000
 
 %default total

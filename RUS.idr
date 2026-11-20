@@ -1,14 +1,13 @@
 module RUS
 
 import Data.Vect
-import QStateT
-import QuantumOp
+import Qimaera.QStateT
+import Qimaera.QuantumOp
 import LinearTypes
 import UnitaryLinear
 import Data.List
-import UStateT
-import BinarySimulatedOp
-
+import Qimaera.UStateT
+import Qimaera.BinarySimulatedOp
 ||| Problem: Given an input qubit |q> and a single-qubit unitary operation U,
 |||          return the state U|q>. The "Repeat Until Success" approach solves
 |||          this problem in the following way:

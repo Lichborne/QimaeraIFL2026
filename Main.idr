@@ -7,9 +7,9 @@ import LinearTypes
 import Control.Linear.LIO
 import Lemmas
 import UnitaryLinear
-import QStateT
-import UStateT
-import UnitarySim
+import Qimaera.QStateT
+import Qimaera.UStateT
+import Qimaera.UnitarySim
 import System.Random
 import Injection
 import QFT
@@ -22,11 +22,11 @@ import Graph
 import Examples
 import RUS
 import Matrix
-import UnitarySim
+import Qimaera.UnitarySim
 import ModularExponentiation
-import BinarySimulatedOp
-import SimulatedOp
-import QuantumOp
+import Qimaera.BinarySimulatedOp
+import Qimaera.SimulatedOp
+import Qimaera.QuantumOp
 import UnitaryNoPrf
 --import UnitaryNoPrfSim
 

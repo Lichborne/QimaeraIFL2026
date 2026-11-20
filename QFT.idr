@@ -4,15 +4,15 @@ import Data.Nat
 import Data.Vect
 import Decidable.Equality
 import Injection
-import QuantumOp
+import Qimaera.QuantumOp
 import LinearTypes
-import UStateT
-import QStateT
+import Qimaera.UStateT
+import Qimaera.QStateT
 import UnitaryLinear
 import Lemmas
-import UnitarySim
-import UnitaryMatrixSim
-import SimulatedOp
+import Qimaera.UnitarySim
+import Qimaera.UnitaryMatrixSim
+import Qimaera.SimulatedOp
 import QuditMatrix
 
 
