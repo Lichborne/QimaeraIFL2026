@@ -25,9 +25,9 @@ import SimulatedOp
 
   
 ||| add a string that describes a new function to string
-addStringFunc: {n : Nat} -> String -> (counter:Nat) -> Unitary n -> String
-addStringFunc str counter g =
-  let s = unitarytoQVis g in
+addStringFunc: {n : Nat} -> String -> (counter:Nat) -> Vect n Qubit -> Unitary n -> String
+addStringFunc str counter v g =
+  let s = unitarytoQVisAt (toVectN v) g in
   let sOut = str ++ "\ndef Function"++ show counter++"(circuit):  \n" 
              ++ (s) ++
              "\treturn circuit\n\n" in
@@ -38,7 +38,7 @@ applyUnitaryCirc': {n : Nat} -> {i : Nat} -> (1_ : UStateT (BinarySimulatedOp n)
                    -> (1 _ : BinarySimulatedOp n) -> R (LPair (BinarySimulatedOp n) (LVect i Qubit))
 applyUnitaryCirc' ust (MkBinarySimulatedOp un v counter str) = 
   let ((MkBinarySimulatedOp unrun vnew vacuousCounter str) # lvect) = runUStateT (MkBinarySimulatedOp IdGate v counter str) ust in
-      let strnew = addStringFunc str counter unrun in
+      let strnew = addStringFunc str counter v unrun in
         let unew = compose unrun un in
           do pure1 ((MkBinarySimulatedOp unew vnew (S counter) strnew) # (lvect))
 
@@ -52,9 +52,9 @@ applyUDirectlyCirc': {n : Nat} -> {i : Nat} -> (Unitary i) -> (1_ : LVect i Qubi
                    -> (1 _ : BinarySimulatedOp n) -> R (LPair (BinarySimulatedOp n) (LVect i Qubit))
 applyUDirectlyCirc' {n} ui li (MkBinarySimulatedOp un v counter str) = 
       let lvect # vect = distributeDupedLVectVect li in
-        let uibig # _ = (applySafe ui (IdGate{n = n}) vect) in
-          let strnew = addStringFunc str counter uibig in
-            let unew # _ = applySafe ui un vect in
+        let uibig # _ = (applySafe ui (IdGate{n = n}) (positions v vect)) in
+          let strnew = addStringFunc str counter v uibig in
+            let unew # _ = applySafe ui un (positions v vect) in
               do pure1 ((MkBinarySimulatedOp unew v (S counter) strnew) # (lvect))
 
 ||| BinarySimulatedOp impolementation of abstract unitary application (that is, whatever one built using UStateT)
@@ -64,9 +64,9 @@ applyUDirectlyCircSimulated ui li = MkQST (applyUDirectlyCirc' ui li)
 
 
 ||| add a string that describes all of the gates before measurement as one string
-addStringFuncMeas: {n : Nat} -> String -> (counter:Nat) -> Unitary n -> String
-addStringFuncMeas str counter g =
-  let s = unitarytoQVis g in
+addStringFuncMeas: {n : Nat} -> String -> (counter:Nat) -> Vect n Qubit -> Unitary n -> String
+addStringFuncMeas str counter v g =
+  let s = unitarytoQVisAt (toVectN v) g in
     let sOut = str ++ "\ndef AllUnitariesBeforeFunc"++ show counter++"InOne(circuit):  \n" ++ (s) ++
              "\treturn circuit\n\n" in
               sOut
@@ -87,11 +87,11 @@ addFuncOfFuncs (S k) = addFuncOfFuncs' Z (S k)
 ||| This is precisely the intention of this implementation, to get the circuits produced
 ||| by algorithms, including variational ones, depending on measurement outcomes, randomly
 private
-measureCirc' : {n : Nat} -> (i : Nat) ->
+measureCirc' : {n : Nat} -> (i : Nat) -> (wire : Nat) ->
            (1 _ : BinarySimulatedOp (S n)) ->
            R (LFstPair (BinarySimulatedOp n) (Bool))
-measureCirc' {n} i (MkBinarySimulatedOp usn w counter str) = 
-  let strOut = str ++ "\tcircuit.measure("++ show i ++ ", "++ show i ++")\n" in
+measureCirc' {n} i wire (MkBinarySimulatedOp usn w counter str) = 
+  let strOut = str ++ "\tcircuit.measure("++ show wire ++ ", "++ show wire ++")\n" in
     do
     let newQubits = removeElem w i
     randnb <- liftIO1 (rndFin 1)
@@ -126,9 +126,10 @@ measureQubitCirc'' : {n : Nat} -> {i : Nat} ->
 measureQubitCirc'' [] qs = pure1 (qs # [])
 measureQubitCirc'' (x :: xs) (MkBinarySimulatedOp uin v counter str) = 
     let (qs' # q) # y = listIndexCirc (MkBinarySimulatedOp uin v counter str) x in
+      let q # k = qubitToNatPair q in
       let () = discardq [q] in   
       do  
-        (s # (b)) <- measureCirc' y qs'
+        (s # (b)) <- measureCirc' y k qs'
         (s1 # (bs)) <- measureQubitCirc'' xs s
         case bs of 
             [] => pure1 (s1 # ([b]))
@@ -140,13 +141,14 @@ measureQubitsCirc' : {n : Nat} -> {i : Nat} ->
                  (1 _ : BinarySimulatedOp (i + n)) -> R (LPair (BinarySimulatedOp n) ((Vect i Bool)))
 measureQubitsCirc' [] qs = pure1 (qs # [])
 measureQubitsCirc' (x :: xs) (MkBinarySimulatedOp uin v counter str) = 
-  let newStr = (addStringFuncMeas str counter uin) in
+  let newStr = (addStringFuncMeas str counter v uin) in
   let ((MkBinarySimulatedOp uin v counter strOut) # q) # y = listIndexCirc (MkBinarySimulatedOp uin v counter newStr) x in
+    let q # k = qubitToNatPair q in
     let () = discardq [q] in 
       let sIn = strOut ++ "\ndef AllFunctionsBefore"++ show counter++"(circuit): \n" ++ (addFuncOfFuncs counter) 
                 ++ "\treturn circuit\n\n" ++ "\ndef Function"++ show (counter)++"(circuit): \n" in 
       do  
-        (s # (b)) <- measureCirc' y (MkBinarySimulatedOp IdGate v (S counter) sIn) 
+        (s # (b)) <- measureCirc' y k (MkBinarySimulatedOp IdGate v (S counter) sIn) 
         ((MkBinarySimulatedOp idn v counter sOut) # (bs)) <- measureQubitCirc'' xs s
         case bs of 
             [] => let sFinal = sOut ++ "\treturn circuit\n\n" in pure1 ((MkBinarySimulatedOp idn v counter sFinal) # ([b]))
@@ -173,7 +175,7 @@ measureAllCirc' : {n : Nat} ->
                  (1 _ : BinarySimulatedOp n) -> R (LPair (BinarySimulatedOp 0) ((Vect n Bool)))
 measureAllCirc' [] qs = pure1 (qs # [])
 measureAllCirc' (x :: xs) (MkBinarySimulatedOp uin v counter str) = 
-  let newStr = (addStringFuncMeas str counter uin) in
+  let newStr = (addStringFuncMeas str counter v uin) in
   let ((MkBinarySimulatedOp uin v counter strOut) # q) # y = listIndexCirc (MkBinarySimulatedOp uin v counter newStr) x in
     let () = discardq [q] in 
       let sIn = strOut ++ "\ndef AllFunctionsBefore"++ show counter++"(circuit): \n" ++ (addFuncOfFuncs counter) ++ "\treturn circuit\n\n"
@@ -244,7 +246,7 @@ applyUnitarySimulatedCirc' : {n : Nat} -> {i : Nat} -> --let lvOut # vect = dist
                 (1 _ : LVect i Qubit) -> Unitary i -> (1 _ : BinarySimulatedOp n) -> (LPair (BinarySimulatedOp n) (LVect i Qubit))
 applyUnitarySimulatedCirc' lvIn ui (MkBinarySimulatedOp un v counter str)= 
     let lvOut # vect = distributeDupedLVectVect lvIn in 
-      let unew # _ = (UnitaryLinear.applySafe ui un vect) in (MkBinarySimulatedOp (unew) v counter str) # (lvOut)
+      let unew # _ = (UnitaryLinear.applySafe ui un (positions v vect)) in (MkBinarySimulatedOp (unew) v counter str) # (lvOut)
 
 ||| BinarySimulatedOp impolementation of applyUnitary
 export
@@ -257,7 +259,7 @@ applyUnitaryOwnCirc' : {n : Nat} -> {i : Nat} -> (1 _ : BinarySimulatedOp i) -> 
    (1 _ : BinarySimulatedOp n) -> (LPair (BinarySimulatedOp n) (LVect i Qubit))
 applyUnitaryOwnCirc' {n} {i} (MkBinarySimulatedOp ui vacuousV vacuousC vacuousStr) lvIn (MkBinarySimulatedOp un v counter str) = 
   let lvOut # vect = distributeDupedLVectVect lvIn in 
-    let unew # _ = (UnitaryLinear.applySafe ui un vect) in (MkBinarySimulatedOp (unew) v counter str) # (lvOut)
+    let unew # _ = (UnitaryLinear.applySafe ui un (positions v vect)) in (MkBinarySimulatedOp (unew) v counter str) # (lvOut)
 
     
 ||| BinarySimulatedOp impolementation of applyUnitaryOwn (using self-defined datatype for unitaries)
@@ -289,7 +291,7 @@ applyControlSimulated': {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1 _ : LVect 
 applyControlSimulated' {n} c ts (MkBinarySimulatedOp ui vecuousV vacuousC vacuousStr) (MkBinarySimulatedOp usn vsn csn str)= 
     let c # k = qubitToNatPair c in
       let lvOut # targets = distributeDupedLVectVect ts in 
-        let usnOut # _ = (applySafe (controlled ui) usn (k::targets)) in
+        let usnOut # _ = (applySafe (controlled ui) usn (positions vsn (k::targets))) in
           (MkBinarySimulatedOp usnOut vsn csn str)  # (c :: lvOut)
 
 export
@@ -351,7 +353,7 @@ applyMControlSimulated' {n} {i} [] ts ui usn impossible
 applyMControlSimulated' {n} {i} {k = k} (c::cs) ts (MkBinarySimulatedOp ui vacuousV vacuousC vacuousStr) (MkBinarySimulatedOp usn vsn count str) = 
   let lvControls # controls = distributeDupedLVectVect (c::cs) in 
     let lvOut # targets = distributeDupedLVectVect ts in 
-      let usnOut # _ = (applySafe (multipleControlled (S k) ui) usn (controls ++ targets)) in
+      let usnOut # _ = (applySafe (multipleControlled (S k) ui) usn (positions vsn (controls ++ targets))) in
         (MkBinarySimulatedOp usnOut vsn count str) # (lvControls ++ lvOut)
 
 export
@@ -382,7 +384,7 @@ controlMUST' {n} {i} {j} ctrl locs targetP  (MkBinarySimulatedOp un vn counter s
   let lvControls # controls = distributeDupedLVectVect ctrl in 
   let qs # targets = distributeDupedLVectVect locs in
     let uc = multipleControlled i u in
-      let unOut # _ = (applySafe uc un (controls ++ targets)) in
+      let unOut # _ = (applySafe uc un (positions vn (controls ++ targets))) in
         (MkBinarySimulatedOp unOut vn counter str) # (lvControls ++ qs)
 
 ||| Implementation of general controlling operation over  UStateT
@@ -399,7 +401,7 @@ controlUST' {n} {i} ctrl locs targetP  (MkBinarySimulatedOp un vn counter str) =
   let q # c = qubitToNatPair ctrl in
   let qs # ts= distributeDupedLVectVect locs in
     let uc = controlled u in
-      let unOut # _ = (applySafe uc un (c::ts)) in
+      let unOut # _ = (applySafe uc un (positions vn (c::ts))) in
         (MkBinarySimulatedOp unOut vn counter str) # (q::qs)
 
 ||| implementation of control - not necessary, default does it.

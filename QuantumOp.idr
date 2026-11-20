@@ -248,6 +248,14 @@ listIndexN : {n : Nat} -> Vect n Qubit -> Nat -> Nat
 listIndexN [] _ = 0
 listIndexN (MkQubit x :: xs) k = if x == k then 0 else S (listIndexN xs k)
 
+||| Translate qubit identifiers to positions in the current state. Backends that
+||| implement QuantumOp record gates at positions, not at identifiers: after a
+||| measurement the identifiers are no longer 0..n-1 (and freed identifiers are
+||| reused), but positions always are.
+export
+positions : {n : Nat} -> Vect n Qubit -> Vect i Nat -> Vect i Nat
+positions v ids = map (listIndexN v) ids
+
 ||| Find an element in a list : used to find the wire of a qubit
 private
 listIndex' : {n : Nat} -> Vect n Qubit -> Qubit -> Nat
@@ -690,21 +698,23 @@ applyUnitary' : {n : Nat} -> {i : Nat} ->
 applyUnitary' ust (MkSimulatedOp qs un v counter) = let (Builtin.(#) opOut lvect) = (UnitaryOp.run' (MkSimulatedOp qs un v counter) ust) in do
   pure1 (Builtin.(#) opOut lvect)
 -}
+||| Apply a circuit to the state vector. The circuit's wires are positions in the
+||| state (see `positions`), so no translation is needed.
 applyCirc : {n:Nat} -> Vect n Nat -> Unitary n -> (1 _ : SimulatedOp n) -> SimulatedOp n
 applyCirc v IdGate qst = qst
 applyCirc {n = n} v (H j g) st = 
-  let k = indexLT j v 
+  let k = j
       h = simpleTensor matrixH n k
       MkSimulatedOp qst urest q counter = applyCirc v g st
   in MkSimulatedOp (h `matrixMult` qst) IdGate q counter
 applyCirc {n = n}  v (P p j g) st = 
-  let k = indexLT j v
+  let k = j
       ph = simpleTensor (matrixP p) n k
       MkSimulatedOp qst urest q counter = applyCirc v g st
   in MkSimulatedOp (ph `matrixMult` qst) IdGate q counter
 applyCirc {n = n} v (CNOT c t g) st = 
-  let kc = indexLT c v
-      kt = indexLT t v
+  let kc = c
+      kt = t
       cn =  tensorCNOT n kc kt
       MkSimulatedOp qst urest q counter = applyCirc v g st
   in MkSimulatedOp (cn `matrixMult` qst) IdGate q counter
@@ -726,7 +736,7 @@ applyUnitarySimulated ust = MkQST (applyUnitary' ust)
 applyUDirectlySimulated' : {n : Nat} -> {i : Nat} -> Unitary i -> (1_ : LVect i Qubit) -> (1_ : SimulatedOp n) -> R (LPair (SimulatedOp n) (LVect i Qubit))
 applyUDirectlySimulated' ui li (MkSimulatedOp qs un v counter) = 
                       let lvOut # vect = distributeDupedLVectVect li in
-                          let unew # _ = applySafe ui IdGate vect in
+                          let unew # _ = applySafe ui IdGate (positions v vect) in
                               let qs2 = applyCirc (toVectN v) unew (MkSimulatedOp qs un v counter) in
                                   pure1 (qs2 # lvOut)
 

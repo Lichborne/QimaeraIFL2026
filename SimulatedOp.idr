@@ -86,7 +86,7 @@ applyUnitary' : {n : Nat} -> {i : Nat} -> --let lvOut # vect = distributeDupedLV
                 (1 _ : LVect i Qubit) -> Unitary i -> (1 _ : SimulatedOp n) -> (LPair (SimulatedOp n) (LVect i Qubit))
 applyUnitary' {n} {i} lvIn ui (MkSimulatedOp qs un v counter)= 
     let lvOut # vect = distributeDupedLVectVect lvIn in 
-      let unew # _ = (UnitaryLinear.applySafe ui un vect) in (MkSimulatedOp qs (unew) v counter) # (lvOut)
+      let unew # _ = (UnitaryLinear.applySafe ui un (positions v vect)) in (MkSimulatedOp qs (unew) v counter) # (lvOut)
               
 
 ||| SimulatedOp implementation of applyUnitary
@@ -100,7 +100,7 @@ applyUnitaryOwn' : {n : Nat} -> {i : Nat} -> (1 _ : SimulatedOp i) -> (1 _ : LVe
    (1 _ : SimulatedOp n) -> (LPair (SimulatedOp n) (LVect i Qubit))
 applyUnitaryOwn' {n} {i} (MkSimulatedOp vacuousQS ui vacuousV vacuousC) lvIn (MkSimulatedOp qs un v counter) = 
  let lvOut # vect = distributeDupedLVectVect lvIn in 
-    let unew # _ = (UnitaryLinear.applySafe ui un vect) in (MkSimulatedOp qs (unew) v counter) # (lvOut)
+    let unew # _ = (UnitaryLinear.applySafe ui un (positions v vect)) in (MkSimulatedOp qs (unew) v counter) # (lvOut)
               
 
 ||| SimulatedOp implementation of applyUnitaryOwn (using self-defined datatype for unitaries)
@@ -147,7 +147,7 @@ applyControlSimulated': {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1 _ : LVect 
 applyControlSimulated' {n} c ts (MkSimulatedOp vacuousQS ui vecuousV vacuousC) (MkSimulatedOp qsn usn vsn csn)= 
   let c # k = qubitToNatPair c in
     let lvOut # targets = distributeDupedLVectVect ts in 
-      let usnOut # _ = (applySafe (controlled ui) usn (k::targets)) in
+      let usnOut # _ = (applySafe (controlled ui) usn (positions vsn (k::targets))) in
         (MkSimulatedOp qsn usnOut vsn csn)  # (c :: lvOut)
 
 export
@@ -188,7 +188,7 @@ applyControlledUSplitSim' c tsi tsj (MkSimulatedOp dummyqs uij dummyvi dummyc) (
   let c # k = qubitToNatPair c in
     let lvMid # targets = distributeDupedLVectVect (tsi ++ tsj) in
       let lvOutL # lvOutR = splitLVinto i j lvMid in
-        let usnOut # _ = (applySafe (controlled uij) usn (k::targets)) in
+        let usnOut # _ = (applySafe (controlled uij) usn (positions vsn (k::targets))) in
           (MkSimulatedOp qsn usnOut vsn csn) # (c :: lvOutL # lvOutR)
 
 ||| Implementation of abstract controlled split application     
@@ -224,7 +224,7 @@ applyMControlSimulated' {n} {i} [] ts ui usn impossible
 applyMControlSimulated' {n} {i} {k = k} (c::cs) ts (MkSimulatedOp vacuousQS ui vacuousV vacuousC) (MkSimulatedOp qs usn vsn count) = 
   let lvControls # controls = distributeDupedLVectVect (c::cs) in 
     let lvOut # targets = distributeDupedLVectVect ts in 
-      let usnOut # _ = (applySafe (multipleControlled (S k) ui) usn (controls ++ targets)) in
+      let usnOut # _ = (applySafe (multipleControlled (S k) ui) usn (positions vsn (controls ++ targets))) in
         (MkSimulatedOp qs usnOut vsn count) # (lvControls ++ lvOut)
 
 ||| Implementation of controlling operation over self-defined operation
@@ -256,7 +256,7 @@ controlUST' {n} {i} ctrl locs targetP  (MkSimulatedOp state un vn counter) = let
   let q # c = qubitToNatPair ctrl in
   let qs # ts= distributeDupedLVectVect locs in
     let uc = controlled u in
-      let unOut # _ = (applySafe uc un (c::ts)) in
+      let unOut # _ = (applySafe uc un (positions vn (c::ts))) in
         (MkSimulatedOp state unOut vn counter) # (q::qs)
 
 ||| Implementation of controlling operation over  UStateT - not necessary, default definition works
@@ -274,7 +274,7 @@ controlMUST' {n} {i} {j} ctrl locs targetP  (MkSimulatedOp state un vn counter) 
   let lvControls # controls = distributeDupedLVectVect ctrl in 
   let qs # targets = distributeDupedLVectVect locs in
     let uc = multipleControlled i u in
-      let unOut # _ = (applySafe uc un (controls ++ targets)) in
+      let unOut # _ = (applySafe uc un (positions vn (controls ++ targets))) in
         (MkSimulatedOp state unOut vn counter) # (lvControls ++ qs)
 
 ||| Implementation of general controlling operation over  UStateT

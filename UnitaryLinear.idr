@@ -713,6 +713,16 @@ unitarytoQVis (H i g) = unitarytoQVis g ++  "\tcircuit.h(" ++ show i ++ ")\n\tci
 unitarytoQVis (P p i g) = unitarytoQVis g ++ "\tcircuit.p(" ++ printPhase p 0.001 "np.pi" ++ ", "++ show i ++ ")\n\tcircuit.barrier()\n" 
 unitarytoQVis (CNOT c t g) = unitarytoQVis g ++ "\tcircuit.cx(" ++ show c ++ ", " ++ show t ++ ")\n\tcircuit.barrier()\n" 
 
+||| As unitarytoQVis, but wire j of the circuit is printed as Qiskit wire (ws !! j).
+||| Used by BinarySimulatedOp, whose circuits are recorded at positions in the
+||| current state while its Qiskit wires are the qubits' identifiers.
+public export
+unitarytoQVisAt : {n : Nat} -> Vect n Nat -> Unitary n -> String
+unitarytoQVisAt ws IdGate = ""
+unitarytoQVisAt ws (H j g) = unitarytoQVisAt ws g ++ "\tcircuit.h(" ++ show (indexLT j ws) ++ ")\n\tcircuit.barrier()\n"
+unitarytoQVisAt ws (P p j g) = unitarytoQVisAt ws g ++ "\tcircuit.p(" ++ printPhase p 0.001 "np.pi" ++ ", "++ show (indexLT j ws) ++ ")\n\tcircuit.barrier()\n"
+unitarytoQVisAt ws (CNOT c t g) = unitarytoQVisAt ws g ++ "\tcircuit.cx(" ++ show (indexLT c ws) ++ ", " ++ show (indexLT t ws) ++ ")\n\tcircuit.barrier()\n"
+
 
 private
 toQVis : {n : Nat} -> Unitary n -> String
