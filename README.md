@@ -15,6 +15,8 @@ Compiling individual files can be done with `idris2 -p contrib -p linear "filena
 
 When compiling individual files, there may be compiler warnings due to the infix notation used.
 
+If wishing to run individual test cases (with IO outputs), the `:exec` Idris2 command should be used once a file is loaded. If such functions are called directly, the process will take a very long time, as the expression is then elaborated by the interpreter purely symbolically.
+
 ## <a id="getting_started"></a> Getting Started
 
 We strongly recommend starting by reading the following paper: https://arxiv.org/abs/2111.10867. It describes some of the main design ideas and explains how some of our libraries and functions should be understood.
