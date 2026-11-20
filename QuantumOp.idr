@@ -430,7 +430,7 @@ toVectQ : (1 _ : LVect n Qubit) -> (Vect n Qubit)
 toVectQ [] = []
 toVectQ ((MkQubit k):: xs) = (MkQubit k) `consLinQ` (toVectQ xs)
 
-export
+private
 toLVectQ : (Vect n Nat) -> (LVect n Qubit)
 toLVectQ [] = []
 toLVectQ (k :: xs) = (MkQubit k) :: (toLVectQ xs)
