@@ -11,7 +11,7 @@ The latest version of Idris can be found [here](https://www.idris-lang.org/pages
 
 Type `make` to compile the main file and `./build/exec/main` to run it.
 
-Compiling individual files can be done with `idris2 --log 4 -p contrib -p linear "filename.idr"`
+Compiling individual files can be done with `idris2 -p contrib -p linear "filename.idr"`
 
 When compiling individual files, there may be compiler warnings due to the infix notation used.
 
