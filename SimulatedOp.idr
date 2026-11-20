@@ -92,7 +92,7 @@ applyUnitary' {n} {i} lvIn ui (MkSimulatedOp qs un v counter)=
 ||| SimulatedOp implementation of applyUnitary
 export
 applyUnitarySimulated : {n : Nat} -> {i : Nat} -> (1 _ : LVect i Qubit) -> Unitary i -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit)
-applyUnitarySimulated lvect ui = MkUST (applyUnitary' lvect (ui))
+applyUnitarySimulated lvect ui = mkUST (applyUnitary' lvect (ui))
 
 ||| Helper for SimulatedOp implementation of applyUnitaryOwn (using self-defined datatype for unitaries)
 private
@@ -107,7 +107,7 @@ applyUnitaryOwn' {n} {i} (MkSimulatedOp vacuousQS ui vacuousV vacuousC) lvIn (Mk
 export
 applyUnitaryOwnSimulated : {n : Nat} -> {i : Nat} -> (1 _ :LVect i Qubit) -> 
   (1 _ : SimulatedOp i) -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit)
-applyUnitaryOwnSimulated {n} {i} qbits simop = MkUST (applyUnitaryOwn' {n =n} {i = i} simop qbits)
+applyUnitaryOwnSimulated {n} {i} qbits simop = mkUST (applyUnitaryOwn' {n =n} {i = i} simop qbits)
 
 
 ||| Helper for SimulatedOp implementation of abstract unitary application (that is, whatever one built using UStateT)
@@ -121,7 +121,7 @@ applyUnitaryAbs' ust (MkSimulatedOp qs un v counter) =
 ||| SimulatedOp implementation of abstract unitary application (that is, whatever one built using UStateT)
 applyUnitaryAbsSimulated : {n : Nat} -> {i : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))      
                    -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect i  Qubit)
-applyUnitaryAbsSimulated ust = MkUST (applyUnitaryAbs' ust )
+applyUnitaryAbsSimulated ust = mkUST (applyUnitaryAbs' ust )
 
 
 ||| Auxiliary function for applying a circuit to some qubits
@@ -134,7 +134,7 @@ combineAbs' ust (MkSimulatedOp qs us v counter) = let (Builtin.(#) opOut (lvect 
 export
 combineAbsSimulated : {n : Nat} -> {i : Nat} -> {j:Nat} ->
   (1_ : (UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)) ))-> UStateT (SimulatedOp n) (SimulatedOp n) (LVect (i+j) Qubit)
-combineAbsSimulated q = MkUST (combineAbs' q)
+combineAbsSimulated q = mkUST (combineAbs' q)
 
 --(1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair Qubit (LVect i Qubit))) ->
 
@@ -153,7 +153,7 @@ applyControlSimulated' {n} c ts (MkSimulatedOp vacuousQS ui vecuousV vacuousC) (
 export
 applyControlAbsSimulated: {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1 _ : LVect i Qubit) -> (1 ownUnitary : SimulatedOp i) ->   
     UStateT (SimulatedOp (S n)) (SimulatedOp (S n)) (LVect (S i) Qubit)
-applyControlAbsSimulated c ts simui = MkUST (applyControlSimulated' c ts simui)   
+applyControlAbsSimulated c ts simui = mkUST (applyControlSimulated' c ts simui)   
 
 applyWithSplitLVects' : {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))
                          -> (1_: SimulatedOp n) -> LPair (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit))
@@ -165,7 +165,7 @@ applyWithSplitLVects' ust (MkSimulatedOp qs un v counter) =
 ||| Implementation of abstract split application - representationally useful
 applyWithSplitLVectsSimulated : {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))
                          -> UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit))
-applyWithSplitLVectsSimulated ust = MkUST (applyWithSplitLVects' ust)
+applyWithSplitLVectsSimulated ust = mkUST (applyWithSplitLVects' ust)
 
 applyParallelSimulated': {n : Nat} -> {i : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))     
                    -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect j Qubit))   
@@ -179,7 +179,7 @@ applyParallelSimulated' ust1 ust2 (MkSimulatedOp qs un v counter) =
 
 applyParallelSimulated: {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) ((LVect i Qubit)))
                         -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) ((LVect j Qubit))) -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect (i + j) Qubit)
-applyParallelSimulated ust1 ust2 = MkUST (applyParallelSimulated' ust1 ust2)
+applyParallelSimulated ust1 ust2 = mkUST (applyParallelSimulated' ust1 ust2)
 
 ||| Helper for implementation of abstract controlled split application 
 applyControlledUSplitSim' : {i:Nat} -> {j:Nat} -> {n : Nat} -> (1 _ : Qubit) -> (1_ : LVect i Qubit) -> (1_ : LVect j Qubit) -> (1_ : SimulatedOp (i + j))
@@ -194,7 +194,7 @@ applyControlledUSplitSim' c tsi tsj (MkSimulatedOp dummyqs uij dummyvi dummyc) (
 ||| Implementation of abstract controlled split application     
 applyControlledSimulatedSplit: {i:Nat} -> {j:Nat} -> {n : Nat} -> (1 _ : Qubit) -> (1_ : LVect i Qubit) -> (1_ : LVect j Qubit) -> (1_ : SimulatedOp (i + j))
                              -> UStateT (SimulatedOp (S n)) (SimulatedOp (S n)) (LPair (LVect (S (i)) Qubit) (LVect j Qubit))
-applyControlledSimulatedSplit c tsi tsj simop = MkUST $ applyControlledUSplitSim' c tsi tsj simop  
+applyControlledSimulatedSplit c tsi tsj simop = mkUST $ applyControlledUSplitSim' c tsi tsj simop  
 
 
 invert: (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit)) -> (1_ : (SimulatedOp n)) -> LPair (SimulatedOp n) (LVect i Qubit)
@@ -205,7 +205,7 @@ invert ust (MkSimulatedOp qn u v counter)=
                 (MkSimulatedOp qn unew v counter) # (lvOut)
 export
 adjointUST' : {n:Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit)) -> (UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))
-adjointUST' ust = MkUST (invert ust)
+adjointUST' ust = mkUST (invert ust)
 
 -------------------------------------------------------------------------
 ||| Other situationally useful, but not necessary interface functions
@@ -231,7 +231,7 @@ applyMControlSimulated' {n} {i} {k = k} (c::cs) ts (MkSimulatedOp vacuousQS ui v
 export
 applyMControlSimulatedOp: {n : Nat} -> {i : Nat} -> {k : Nat} -> (1_ : LVect (S k) Qubit) -> (1_ : LVect i Qubit) -> (1_ :  SimulatedOp i) ->      
     UStateT (SimulatedOp ((S k) + n)) (SimulatedOp ((S k) +  n)) (LVect ((S k) +  i) Qubit)
-applyMControlSimulatedOp cs ts ui = MkUST (applyMControlSimulated' cs ts ui)   
+applyMControlSimulatedOp cs ts ui = mkUST (applyMControlSimulated' cs ts ui)   
 
 ||| Implementation of a neutral parsing
 private
@@ -263,7 +263,7 @@ controlUST' {n} {i} ctrl locs targetP  (MkSimulatedOp state un vn counter) = let
 controlUSTSimOp: {n : Nat} -> {i : Nat} -> (1 control : Qubit) -> (1 locations : LVect i Qubit) ->
                    (targetPattern : ((1_ :LVect i Qubit) -> UStateT (SimulatedOp i) (SimulatedOp i) (LVect i Qubit)))
                    -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect (S i) Qubit)
-controlUSTSimOp ctrl loc targetP = MkUST (controlUST' ctrl loc targetP)
+controlUSTSimOp ctrl loc targetP = mkUST (controlUST' ctrl loc targetP)
 
 
 ||| helper for general controlling operation over  UStateT
@@ -281,7 +281,7 @@ controlMUST' {n} {i} {j} ctrl locs targetP  (MkSimulatedOp state un vn counter) 
 controlMUSTSimOp:  {n : Nat} -> {i : Nat} -> {j : Nat} ->(1 controls : LVect i Qubit) -> (1 locations : LVect j Qubit) ->
                    (targetPattern : ((1_ :LVect j Qubit) -> UStateT (SimulatedOp j) (SimulatedOp j) (LVect j Qubit)))
                    -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect (i + j) Qubit)
-controlMUSTSimOp ctrl loc targetP = MkUST (controlMUST' ctrl loc targetP)
+controlMUSTSimOp ctrl loc targetP = mkUST (controlMUST' ctrl loc targetP)
 
 
 

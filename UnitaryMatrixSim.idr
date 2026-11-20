@@ -56,7 +56,7 @@ applyUnitaryOwnMatrixSim'{n} {i} qubits umi umn =
 
 
 applyUnitaryOwnMatrixSim : {n : Nat} -> {i : Nat} ->  (1 _ : LVect i Qubit) -> (1_ : UnitaryMatrix i) -> UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect i Qubit)
-applyUnitaryOwnMatrixSim qubits ui = MkUST (applyUnitaryOwnMatrixSim' qubits ui)
+applyUnitaryOwnMatrixSim qubits ui = mkUST (applyUnitaryOwnMatrixSim' qubits ui)
 
 
 applyUnitaryMatrixSim' : {n : Nat} -> {i : Nat} -> (1 _ : LVect i Qubit) -> Unitary i -> 
@@ -72,7 +72,7 @@ applyUnitaryMatrixSim'{n} {i} qubits ui umn =  --applyUnitaryOwnMatrixSim'{n} {i
 
 applyUnitaryMatrixSim : {n : Nat} -> {i : Nat} -> 
                  (1 _ : LVect i Qubit) -> Unitary i -> UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect i Qubit)
-applyUnitaryMatrixSim qubits ui = MkUST (applyUnitaryMatrixSim' qubits ui)
+applyUnitaryMatrixSim qubits ui = mkUST (applyUnitaryMatrixSim' qubits ui)
 
 
 applyHMatrixSim' : {n : Nat} -> (1 _ : Qubit) -> 
@@ -85,7 +85,7 @@ applyHMatrixSim'{n} qubit umn =
 
 
 applyHMatrixSim : {n : Nat} -> (1 _ : Qubit) -> UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect 1 Qubit)
-applyHMatrixSim qubit = MkUST (applyHMatrixSim' qubit)
+applyHMatrixSim qubit = mkUST (applyHMatrixSim' qubit)
 
 
 applyPMatrixSim' : {n : Nat} -> (1 _ : Qubit) -> (p:Double) -> 
@@ -98,7 +98,7 @@ applyPMatrixSim'{n} qubit p umn =
 
 
 applyPMatrixSim : {n : Nat} -> (p:Double) -> (1 _ : Qubit) -> UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect 1 Qubit)
-applyPMatrixSim p qubit = MkUST (applyPMatrixSim' qubit p)
+applyPMatrixSim p qubit = mkUST (applyPMatrixSim' qubit p)
 
 
 applyCNOTMatrixSim' : {n : Nat} -> (1 _ : Qubit) -> (1 _ : Qubit) ->
@@ -112,7 +112,7 @@ applyCNOTMatrixSim'{n} c t umn =
 
 
 applyCNOTMatrixSim : {n : Nat} -> (1 _ : Qubit) -> (1 _ : Qubit) -> UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect 2 Qubit)
-applyCNOTMatrixSim c t = MkUST (applyCNOTMatrixSim' c t)
+applyCNOTMatrixSim c t = mkUST (applyCNOTMatrixSim' c t)
 
 
 adjointUSTMatrixSim': {n : Nat} ->(1_ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect i Qubit)) -> (1_ : UnitaryMatrix n) -> LPair (UnitaryMatrix n) (LVect i Qubit)
@@ -124,7 +124,7 @@ adjointUSTMatrixSim'{n} ust um = let un # lvOut = runUStateT (idU) ust in
                 unew # (lvOut)
 
 adjointUSTMatrixSim: {n : Nat} -> (1_ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect i Qubit)) -> (UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect i Qubit))
-adjointUSTMatrixSim {n} ust = MkUST (adjointUSTMatrixSim' ust)
+adjointUSTMatrixSim {n} ust = mkUST (adjointUSTMatrixSim' ust)
 
 
 applyControlledMatrix': {n : Nat} -> {i : Nat} -> (1 control : Qubit) -> (1 targets : LVect i Qubit) -> (1 ownUnitary : UnitaryMatrix i)      
@@ -142,7 +142,7 @@ applyControlledMatrix' {n} {i} c ts umi umsn =
 
 applyControlledMatrix: {n : Nat} -> {i : Nat} -> (1 controls : Qubit) -> (1 targets : LVect i Qubit) -> (1 ownUnitary : UnitaryMatrix  i)      
                    -> UStateT (UnitaryMatrix (S n)) (UnitaryMatrix  (S n)) (LVect (S i) Qubit)
-applyControlledMatrix c ts umi = MkUST $ applyControlledMatrix' c ts umi
+applyControlledMatrix c ts umi = mkUST $ applyControlledMatrix' c ts umi
 
 
 
@@ -160,7 +160,7 @@ applyMultipleControlledOwnMatrix' {n} {i} {k} cs ts umi umsn =
 
 applyMultipleControlledOwnMatrix: {n : Nat} -> {i : Nat} -> {k:Nat} -> (1 controls : LVect (S k) Qubit) -> (1 targets : LVect i Qubit) -> (1 ownUnitary : UnitaryMatrix i)      
                    -> UStateT (UnitaryMatrix ((S k) + n)) (UnitaryMatrix ((S k) + n)) (LVect ((S k)+ i ) Qubit)
-applyMultipleControlledOwnMatrix cs ts umi = MkUST $ applyMultipleControlledOwnMatrix' cs ts umi
+applyMultipleControlledOwnMatrix cs ts umi = mkUST $ applyMultipleControlledOwnMatrix' cs ts umi
 
 applyParallelMatrix': {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) ((LVect i Qubit)))
                         -> (1_ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) ((LVect j Qubit))) -> (1_ : UnitaryMatrix n) -> LPair (UnitaryMatrix n) (LVect (i + j) Qubit)
@@ -176,7 +176,7 @@ applyParallelMatrix' {i} {j} {n} ust1 ust2 umn =
  
 applyParallelMatrixSim : {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) ((LVect i Qubit)))
                         -> (1_ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) ((LVect j Qubit))) -> UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect (i + j) Qubit)
-applyParallelMatrixSim ust1 ust2 = MkUST (applyParallelMatrix' ust1 ust2)         
+applyParallelMatrixSim ust1 ust2 = mkUST (applyParallelMatrix' ust1 ust2)         
 
 ||| Depricared because Unsafe, but useful sometimes:
 public export
@@ -198,7 +198,7 @@ combineAbs' ust (ui) = let (Builtin.(#) opOut (lvect #rvect)) = (runSplitUnitary
 export
 combineAbsUnitaryMatrixSim : {n : Nat} -> {i : Nat} -> {j:Nat} ->
   (1_ : (UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LPair (LVect i Qubit) (LVect j Qubit)) ))-> UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect (i+j) Qubit)
-combineAbsUnitaryMatrixSim q = MkUST (combineAbs' q)
+combineAbsUnitaryMatrixSim q = mkUST (combineAbs' q)
 
 
 controlMUST': {n : Nat} -> {i : Nat} -> {j: Nat} -> (1 controls : LVect i Qubit) -> (1 locations : LVect j Qubit) ->
@@ -215,7 +215,7 @@ controlMUST' {n} {i} {j} ctrl locs targetP un = let u = buildUnitaryM {n = j} ta
 controlMUSTUnitaryMatrix: {n : Nat} -> {i : Nat} -> {j : Nat} ->(1 controls : LVect i Qubit) -> (1 locations : LVect j Qubit) ->
                    (targetPattern : ((1_ :LVect j Qubit) -> UStateT (UnitaryMatrix j) (UnitaryMatrix j) (LVect j Qubit)))
                    -> UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect (i + j) Qubit)
-controlMUSTUnitaryMatrix ctrl loc targetP = MkUST (controlMUST' ctrl loc targetP)
+controlMUSTUnitaryMatrix ctrl loc targetP = mkUST (controlMUST' ctrl loc targetP)
 
 
 export

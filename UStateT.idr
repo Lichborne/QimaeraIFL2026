@@ -6,10 +6,16 @@ import UnitaryLinear
 
 
 
-public export
+||| The UStateT monad is a linear state monad, similar to QStateT but without the IO monad. 
+|||It is used for linear computations that do not involve IO, such as unitary operations on quantum states. 
+export
 data UStateT : (initialType : Type) -> (finalType : Type) -> (returnType : Type) -> Type where
   MkUST : (1 _ : (1 _ : initialType) -> (LPair finalType returnType)) -> UStateT initialType finalType returnType
 
+||| The exported way to build a UStateT computation. This is to avoid pattern matching on the constructor.
+public export
+mkUST : (1 _ : (1 _ : initialType) -> (LPair finalType returnType)) -> UStateT initialType finalType returnType
+mkUST f = MkUST f
 
 ||| Unwrap and apply a UStateT monad computation.
 public export
@@ -30,33 +36,3 @@ public export
 modify : ((1 _ : i) -> o) -> UStateT i o ()
 modify f = MkUST $ \i => (f i # ())
 
-
-{-}
-implementation Functor (UStateT (Unitary n) (Unitary n)) where
-  map func fa = do
-    a <- fa
-    UStateT.pure (func $ (fromLinear a))
-
-implementation Functor f => Applicative (UStateT (Unitary n) (Unitary n)) where
-  pure a =  UStateT.pure a
-  (<*>) fg st = do 
-      func <- fg
-      un <- st
-      UStateT.pure $ func un
-
-
-
-{-
-get : UStateT s m s
-get = MkUST $ (\s => do
-      pure s)}
-   ||| Apply the Hadamard gate 
-  applyH : {n : Nat} -> Unitary i -> Unitary n -> {auto prf: LT i n} -> {auto valid: LTE 2 n} 
-              -> UStateT (Vect i (Fin n)) (Vect n (Fin )) (Unitary n)
-  applyH ui un q = do
-    wires <- get
-    [q1] <- apply {n = n} {i = rewrite (sym $ comeOnIdrisGen {n=n} {m=i} {prf = lteSuccLeft prf}) in (justFinLemma i (minus n i) {prf = rewrite lteSuccLeft in valid})}
-              ui un wires  {valid = valid}
-    pure q1 
-
--}

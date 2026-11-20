@@ -41,7 +41,7 @@ applyUnitaryNoPrf' lvIn ui (u) = let lvOut # vect = distributeDupedLVectVect lvI
 export
 applyUnitaryNoPrfSimulated : {n : Nat} -> {i : Nat} ->
   (1 _ : LVect i Qubit) -> Unitary i -> UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit)
-applyUnitaryNoPrfSimulated lvect ui = MkUST (applyUnitaryNoPrf' lvect (toNoPrf ui))
+applyUnitaryNoPrfSimulated lvect ui = mkUST (applyUnitaryNoPrf' lvect (toNoPrf ui))
 
 private
 applyUnitaryNoPrfOwn' : {n : Nat} -> {i : Nat} -> --let lvOut # vect = distributeDupedLVectVect lvIn in ( (apply ui u vect) ) # lvOut
@@ -54,11 +54,11 @@ applyUnitaryNoPrfOwn' lvIn ui (u) = let lvOut # vect = distributeDupedLVectVect 
 export
 applyUnitaryNoPrfOwnSimulated : {n : Nat} -> {i : Nat} ->
   (1 _ : LVect i Qubit) -> (1_ : UnitaryNoPrf i) -> UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit)
-applyUnitaryNoPrfOwnSimulated lvect ui = MkUST (applyUnitaryNoPrfOwn' lvect (ui))
+applyUnitaryNoPrfOwnSimulated lvect ui = mkUST (applyUnitaryNoPrfOwn' lvect (ui))
 
 applyInternal : {n : Nat} -> {i : Nat} ->
   (1 _ : LVect i Qubit) -> UnitaryNoPrf i -> UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit)
-applyInternal lvect ui = MkUST (applyUnitaryNoPrf' lvect ui)
+applyInternal lvect ui = mkUST (applyUnitaryNoPrf' lvect ui)
 
 
 private
@@ -73,7 +73,7 @@ applyControlSimulated' {n} {i} c ts ui usn =
 export
 applyControlAbsSimulated: {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1_ : LVect i Qubit) -> (1_ : UnitaryNoPrf i) ->      
     UStateT (UnitaryNoPrf (S n)) (UnitaryNoPrf (S n)) (LVect (S i) Qubit)
-applyControlAbsSimulated c ts ui = MkUST (applyControlSimulated' c ts ui)  
+applyControlAbsSimulated c ts ui = mkUST (applyControlSimulated' c ts ui)  
 
 public export
 duplicateLinU: (1_ : UnitaryNoPrf n) -> Pair (UnitaryNoPrf n) (UnitaryNoPrf n)
@@ -93,7 +93,7 @@ applyUnitaryNoPrfAbs' ust un =
 ||| UnitaryNoPrf implementation of abstract UnitaryNoPrf application (that is, whatever one built using UStateT) 
 applyUnitaryNoPrfAbsSimulated : {n : Nat} -> {i : Nat} -> (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit))      
                    -> UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i  Qubit)
-applyUnitaryNoPrfAbsSimulated ust = MkUST (applyUnitaryNoPrfAbs' ust )
+applyUnitaryNoPrfAbsSimulated ust = mkUST (applyUnitaryNoPrfAbs' ust )
 
 
 applyUnitaryNoPrfAbsSplit' : {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LPair (LVect i Qubit) (LVect j Qubit)))
@@ -106,7 +106,7 @@ applyUnitaryNoPrfAbsSplit' ust (un) =
 ||| Implementation of abstract split application - representationally useful
 applyUnitaryNoPrfAbsSplitSimulated : {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LPair (LVect i Qubit) (LVect j Qubit)))
                          -> UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LPair (LVect i Qubit) (LVect j Qubit))
-applyUnitaryNoPrfAbsSplitSimulated ust = MkUST (applyUnitaryNoPrfAbsSplit' ust)
+applyUnitaryNoPrfAbsSplitSimulated ust = mkUST (applyUnitaryNoPrfAbsSplit' ust)
 
 ||| Helper for implementation of abstract controlled split application 
 applyControlledUSplitSim' : {i:Nat} -> {j:Nat} -> {n : Nat} -> (1 _ : Qubit) -> (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LPair (LVect i Qubit) (LVect j Qubit)))
@@ -130,7 +130,7 @@ applyControlledUSplitSim' q ust (usn)=
 ||| Implementation of abstract controlled split application     
 applyControlledSimulatedSplit: {i:Nat} -> {j:Nat} -> {n : Nat} -> (1 _ : Qubit) -> (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LPair (LVect i Qubit) (LVect j Qubit)))
                              -> UStateT (UnitaryNoPrf (S n)) (UnitaryNoPrf (S n)) (LPair (LVect (S (i)) Qubit) (LVect j Qubit))
-applyControlledSimulatedSplit ctrl ust = MkUST (applyControlledUSplitSim' ctrl ust)   
+applyControlledSimulatedSplit ctrl ust = mkUST (applyControlledUSplitSim' ctrl ust)   
 
 
 private
@@ -143,7 +143,7 @@ combineAbs' ust (ui) = let (Builtin.(#) opOut (lvect #rvect)) = (runSplitUnitary
 export
 combineAbsUnitaryNoPrfSimulated : {n : Nat} -> {i : Nat} -> {j:Nat} ->
   (1_ : (UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LPair (LVect i Qubit) (LVect j Qubit)) ))-> UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect (i+j) Qubit)
-combineAbsUnitaryNoPrfSimulated q = MkUST (combineAbs' q)
+combineAbsUnitaryNoPrfSimulated q = mkUST (combineAbs' q)
 
 explicitCombineL: (1_ : LVect (S k) Qubit) -> (1_ : LVect i Qubit) -> (LVect ((S k) + i) Qubit)
 explicitCombineL lvL lvR = LinearTypes.(++) lvL lvR
@@ -181,7 +181,7 @@ invertNoPrf ust un =
  
 export
 adjointUSTNoPrf' :  {n:Nat} ->  (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit)) -> (UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit))
-adjointUSTNoPrf' ust = MkUST (invertNoPrf ust)
+adjointUSTNoPrf' ust = mkUST (invertNoPrf ust)
 
 private
 neutralRun' : {n:Nat} -> (1_ : UStateT (UnitaryNoPrf 0) (UnitaryNoPrf n) (LVect n Qubit)) -> UnitaryNoPrf n
@@ -203,7 +203,7 @@ applyParallelSimulatedNoPrf' ust1 ust2 un =
 export 
 applyParallelSimulatedNoPrf: {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) ((LVect i Qubit)))
                         -> (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) ((LVect j Qubit))) -> UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect (i + j) Qubit)
-applyParallelSimulatedNoPrf ust1 ust2 = MkUST (applyParallelSimulatedNoPrf' ust1 ust2)
+applyParallelSimulatedNoPrf ust1 ust2 = mkUST (applyParallelSimulatedNoPrf' ust1 ust2)
 
 export
 buildUnitaryNoPrf': {n:Nat} -> ((1_ : LVect n Qubit) -> (UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect n Qubit))) -> UnitaryNoPrf n
@@ -227,7 +227,7 @@ controlUST' {n} {i} ctrl locs targetP un = let u = buildUnitaryNoPrf' {n = i} ta
 controlUSTUnitaryNoPrf: {n : Nat} -> {i : Nat} -> (1 control : Qubit) -> (1 locations : LVect i Qubit) ->
                    (targetPattern : ((1_ :LVect i Qubit) -> UStateT (UnitaryNoPrf i) (UnitaryNoPrf i) (LVect i Qubit)))
                    -> UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect (S i) Qubit)
-controlUSTUnitaryNoPrf ctrl loc targetP = MkUST (controlUST' ctrl loc targetP)
+controlUSTUnitaryNoPrf ctrl loc targetP = mkUST (controlUST' ctrl loc targetP)
 
 
 private
@@ -243,7 +243,7 @@ applyMControlSimulatedNoPrf' {n} {i} {k = k} (c::cs) ts ui usn =
 export
 applyMControlSimulatedNoPrf: {n : Nat} -> {i : Nat} -> {k : Nat} -> (1_ : LVect (S k) Qubit) -> (1_ : LVect i Qubit) -> (1_ : UnitaryNoPrf i) ->      
     UStateT (UnitaryNoPrf ((S k) + n)) (UnitaryNoPrf ((S k) +  n)) (LVect ((S k) +  i) Qubit)
-applyMControlSimulatedNoPrf cs ts ui = MkUST (applyMControlSimulatedNoPrf' cs ts ui)   
+applyMControlSimulatedNoPrf cs ts ui = mkUST (applyMControlSimulatedNoPrf' cs ts ui)   
 
 ||| helper for multiple control implementation
 controlMUST': {n : Nat} -> {i : Nat} -> {j: Nat} -> (1 controls : LVect i Qubit) -> (1 locations : LVect j Qubit) ->
@@ -260,7 +260,7 @@ controlMUST' {n} {i} {j} ctrl locs targetP un = let u = buildUnitaryNoPrf' {n = 
 controlMUSTUnitaryNoPrf: {n : Nat} -> {i : Nat} -> {j : Nat} ->(1 controls : LVect i Qubit) -> (1 locations : LVect j Qubit) ->
                    (targetPattern : ((1_ :LVect j Qubit) -> UStateT (UnitaryNoPrf j) (UnitaryNoPrf j) (LVect j Qubit)))
                    -> UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect (i + j) Qubit)
-controlMUSTUnitaryNoPrf ctrl loc targetP = MkUST (controlMUST' ctrl loc targetP)
+controlMUSTUnitaryNoPrf ctrl loc targetP = mkUST (controlMUST' ctrl loc targetP)
 
 
 export

@@ -113,7 +113,7 @@ interface UnitaryOp (0 t : Nat -> Type) where
   ||| Abstract recombination. Helps with applying a split-computed unitary in QuantumOp
   combineAbs : {i:Nat} -> {j:Nat} -> {n : Nat} -> (1_ : UStateT (t n) (t n) (LPair (LVect i Qubit) (LVect j Qubit))) 
                 -> UStateT (t n) (t n) (LVect (i + j) Qubit)
-  combineAbs ust = MkUST (f' ust) where 
+  combineAbs ust = mkUST (f' ust) where 
     f' : {i:Nat} -> {j:Nat} -> {n : Nat} -> (1_ : UStateT (t n) (t n) (LPair (LVect i Qubit) (LVect j Qubit))) 
                 -> (1_ : t n) -> LPair (t n) (LVect (i + j) Qubit)
     f' ust ui = let (Builtin.(#) opOut (lvect # rvect)) = (runUStateT ( ui) ust) in do (Builtin.(#) opOut (LinearTypes.(++) lvect rvect))
@@ -827,7 +827,7 @@ newQubitsSimulated p = MkQST (newQubits' p) where
 
 private
 newQubitsSimulatedUST : (p : Nat) -> UStateT (SimulatedOp n) (SimulatedOp (n+p)) (LVect p Qubit)
-newQubitsSimulatedUST p = MkUST (newQubits' p) where
+newQubitsSimulatedUST p = mkUST (newQubits' p) where
   newQubits' : (q : Nat) -> (1 _ : SimulatedOp m) -> (LPair (SimulatedOp (m + q)) (LVect q Qubit))
   newQubits' q (MkSimulatedOp qs un v counter) =
     let s' = toTensorBasis (ket0 q)
@@ -901,7 +901,7 @@ newQubitsSimulatedCirc p = MkQST (newQubits' p) where
 ||| new qubits for UnitaryRun
 private
 newQubitsBinSimulatedUST : (p : Nat) -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp (n+p)) (LVect p Qubit)
-newQubitsBinSimulatedUST p = MkUST (newQubits' p) where
+newQubitsBinSimulatedUST p = mkUST (newQubits' p) where
   newQubits' : (q : Nat) -> (1 _ : BinarySimulatedOp m) -> (LPair (BinarySimulatedOp (m + q)) (LVect q Qubit))
   newQubits' q (MkBinarySimulatedOp un v counter str) =
     let s' = toTensorBasis (ket0 q)
@@ -950,7 +950,7 @@ idUpNoPrf um (S k) = um # (IdGate {n = (S k)})
 
 export
 newQubitsUST : {n:Nat} -> (p : Nat) -> UStateT (Unitary n) (Unitary (n+p)) (LVect p Qubit)
-newQubitsUST p = MkUST (newQubits' p) where
+newQubitsUST p = mkUST (newQubits' p) where
   newQubits' : {m:Nat} -> (q : Nat) -> (1 _ : Unitary m) ->(LPair (Unitary (m + q)) (LVect q Qubit))
   newQubits' {m} q un = 
     let (qubits # v') = newQubitsPointersNoCount q (mkQubitV 0 m)
@@ -958,7 +958,7 @@ newQubitsUST p = MkUST (newQubits' p) where
 
 export
 newQubitsUSTNoPrf : {n:Nat} -> (p : Nat) -> UStateT (UnitaryNoPrf n) (UnitaryNoPrf (n+p)) (LVect p Qubit)
-newQubitsUSTNoPrf p = MkUST (newQubits' p) where
+newQubitsUSTNoPrf p = mkUST (newQubits' p) where
   newQubits' : {m:Nat} -> (q : Nat) -> (1 _ : UnitaryNoPrf m) ->(LPair (UnitaryNoPrf (m + q)) (LVect q Qubit))
   newQubits' {m} q un = 
     let (qubits # v') = newQubitsPointersNoCount q (mkQubitV 0 m)
@@ -979,7 +979,7 @@ applyUSTR' ust un =
 ||| Unitary implementation of abstract unitary application (that is, whatever one built using UStateT)
 applyUSTSimulatedR : {n : Nat} -> {i : Nat} -> (1_ : UStateT (Unitary n) (Unitary n) (LVect i Qubit))      
                    -> UStateT (Unitary n) (Unitary n) (LVect i  Qubit)
-applyUSTSimulatedR ust = MkUST (applyUSTR' ust )
+applyUSTSimulatedR ust = mkUST (applyUSTR' ust )
 
 ||| Helper for Unitary implementation of abstract unitary application (that is, whatever one built using UStateT)
 applyUSTSplit': {n : Nat} -> {i : Nat} -> (1_ : UStateT (Unitary n) (Unitary n) (LPair (LVect i Qubit) (LVect j Qubit)))      
@@ -992,7 +992,7 @@ applyUSTSplit' ust un =
 ||| Unitary implementation of abstract unitary application (that is, whatever one built using UStateT)
 applyUSTSimulatedSplit : {n : Nat} -> {i : Nat} -> (1_ : UStateT (Unitary n) (Unitary n) (LPair (LVect i Qubit) (LVect j Qubit)))      
                    -> UStateT (Unitary n) (Unitary n) (LVect (i + j) Qubit)
-applyUSTSimulatedSplit ust = MkUST (applyUSTSplit' ust )
+applyUSTSimulatedSplit ust = mkUST (applyUSTSplit' ust )
 
 
 runUnitaryOp' : {n:Nat} -> UStateT (Unitary 0) (Unitary n) (LVect n Qubit) -> (Unitary n)
@@ -1022,7 +1022,7 @@ applyUSTRNoPrf' {n} ust un =
 ||| UnitaryNoPrfimplementation of abstract UnitaryNoPrfapplication (that is, whatever one built using UStateT)
 applyUSTSimulatedRNoPrf : {n : Nat} -> {i : Nat} -> (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit))      
                    -> UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i  Qubit)
-applyUSTSimulatedRNoPrf ust = MkUST (applyUSTRNoPrf' ust )
+applyUSTSimulatedRNoPrf ust = mkUST (applyUSTRNoPrf' ust )
 
 ||| Helper for UnitaryNoPrfimplementation of abstract UnitaryNoPrfapplication (that is, whatever one built using UStateT)
 applyUSTSplitNoPrf': {n : Nat} -> {i : Nat} -> (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LPair (LVect i Qubit) (LVect j Qubit)))      
@@ -1035,7 +1035,7 @@ applyUSTSplitNoPrf' ust un =
 ||| UnitaryNoPrfimplementation of abstract UnitaryNoPrfapplication (that is, whatever one built using UStateT)
 applyUSTSimulatedSplitNoPrf : {n : Nat} -> {i : Nat} -> (1_ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LPair (LVect i Qubit) (LVect j Qubit)))      
                    -> UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect (i + j) Qubit)
-applyUSTSimulatedSplitNoPrf ust = MkUST (applyUSTSplitNoPrf' ust )
+applyUSTSimulatedSplitNoPrf ust = mkUST (applyUSTSplitNoPrf' ust )
 
 
 runUnitaryOpNoPrf' : {n:Nat} -> UStateT (UnitaryNoPrf 0) (UnitaryNoPrf n) (LVect n Qubit) -> (UnitaryNoPrf n)
@@ -1065,7 +1065,7 @@ applyUSTSimOp' ust (MkSimulatedOp qs un vn count) =
 ||| SimulatedOp implementation of abstract unitary application (that is, whatever one built using UStateT)
 applyUSTSimulatedSimOp : {n : Nat} -> {i : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))      
                    -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect i  Qubit)
-applyUSTSimulatedSimOp ust = MkUST (applyUSTSimOp' ust )
+applyUSTSimulatedSimOp ust = mkUST (applyUSTSimOp' ust )
 
 ||| Helper for SimulatedOp implementation of abstract unitary application (that is, whatever one built using UStateT)
 applyUSTSplitSimOp': {n : Nat} -> {i : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))      
@@ -1078,7 +1078,7 @@ applyUSTSplitSimOp' ust (MkSimulatedOp qs un vn count) =
 ||| SimulatedOp implementation of abstract unitary application (that is, whatever one built using UStateT)
 applyUSTSimulatedSplitSimOp : {n : Nat} -> {i : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))      
                    -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect (i + j) Qubit)
-applyUSTSimulatedSplitSimOp ust = MkUST (applyUSTSplitSimOp' ust )
+applyUSTSimulatedSplitSimOp ust = mkUST (applyUSTSplitSimOp' ust )
 
 
 runUnitaryOpSimOp : {n:Nat} -> UStateT (SimulatedOp 0) (SimulatedOp n) (LVect n Qubit) -> (SimulatedOp n)
@@ -1108,7 +1108,7 @@ applyUSTBinSimOp' ust (MkBinarySimulatedOp un vn count str) =
 ||| BinarySimulatedOp implementation of abstract unitary application (that is, whatever one built using UStateT)
 applyUSTBinSimulatedSimOp : {n : Nat} -> {i : Nat} -> (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i Qubit))      
                    -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i  Qubit)
-applyUSTBinSimulatedSimOp ust = MkUST (applyUSTBinSimOp' ust )
+applyUSTBinSimulatedSimOp ust = mkUST (applyUSTBinSimOp' ust )
 
 ||| Helper for BinarySimulatedOp implementation of abstract unitary application (that is, whatever one built using UStateT)
 applyUSTBinSplitSimOp': {n : Nat} -> {i : Nat} -> (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))      
@@ -1121,7 +1121,7 @@ applyUSTBinSplitSimOp' ust (MkBinarySimulatedOp un vn count str) =
 ||| BinarySimulatedOp implementation of abstract unitary application (that is, whatever one built using UStateT)
 applyUSTBinSimulatedSplitSimOp : {n : Nat} -> {i : Nat} -> (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))      
                    -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect (i + j) Qubit)
-applyUSTBinSimulatedSplitSimOp ust = MkUST (applyUSTBinSplitSimOp' ust )
+applyUSTBinSimulatedSplitSimOp ust = mkUST (applyUSTBinSplitSimOp' ust )
 
 
 runUnitaryOpBinSimOp : {n:Nat} -> UStateT (BinarySimulatedOp 0) (BinarySimulatedOp n) (LVect n Qubit) -> (BinarySimulatedOp n)
@@ -1152,7 +1152,7 @@ applyUSTBox' strIn ust (MkBinarySimulatedOp un vn count str) =
 ||| BinarySimulatedOp implementation of abstract unitary application (that is, whatever one built using UStateT)
 applyUSTBox : {n : Nat} -> {i : Nat} -> (String) -> (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i Qubit))      
                    -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i  Qubit)
-applyUSTBox str ust = MkUST (applyUSTBox' str ust )
+applyUSTBox str ust = mkUST (applyUSTBox' str ust )
 
 ||| add a string that describes a new function to string
 addStringFunc: {n : Nat} -> String -> (counter:Nat) -> Unitary n -> String
@@ -1248,7 +1248,7 @@ newQubitsUM' {m = S k} q un =
 ||| Supply qubits for UnitaryMatrix
 private
 newQubitsUMST : {n:Nat} -> (p : Nat) -> UStateT (UnitaryMatrix n) (UnitaryMatrix (n+p)) (LVect p Qubit)
-newQubitsUMST {n} p = MkUST (newQubitsUM' {m = n} p)
+newQubitsUMST {n} p = mkUST (newQubitsUM' {m = n} p)
 
             --multPowerPowerPlus : (base, exp, exp' : Nat) -> power base (exp + exp') = (power base exp) * (power base exp')
 ||| Helper for Unitary implementation of abstract unitary application (that is, whatever one built using UStateT)
@@ -1264,7 +1264,7 @@ applyUMSTR' ust un =
 ||| UnitaryMatrix implementation of abstract UnitaryMatrix application (that is, whatever one built using UStateT)
 applyUMSTSimulatedR : {n : Nat} -> {i : Nat} -> (1_ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect i Qubit))      
                    -> UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect i  Qubit)
-applyUMSTSimulatedR ust = MkUST (applyUMSTR' ust )
+applyUMSTSimulatedR ust = mkUST (applyUMSTR' ust )
 
 ||| Helper for UnitaryMatrix implementation of abstract UnitaryMatrix application (that is, whatever one built using UStateT)
 applyUMSTSplit': {n : Nat} -> {i : Nat} -> (1_ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LPair (LVect i Qubit) (LVect j Qubit)))      
@@ -1279,7 +1279,7 @@ applyUMSTSplit' ust un =
 ||| UnitaryMatrix implementation of abstract UnitaryMatrix application (that is, whatever one built using UStateT)
 applyUMSTSimulatedSplit : {n : Nat} -> {i : Nat} -> (1_ : UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LPair (LVect i Qubit) (LVect j Qubit)))      
                    -> UStateT (UnitaryMatrix n) (UnitaryMatrix n) (LVect (i + j) Qubit)
-applyUMSTSimulatedSplit ust = MkUST (applyUMSTSplit' ust )
+applyUMSTSimulatedSplit ust = mkUST (applyUMSTSplit' ust )
 
 
 runUnitaryMatrixOp' : {n:Nat} -> UStateT (UnitaryMatrix 0) (UnitaryMatrix n) (LVect n Qubit) -> (UnitaryMatrix n)
@@ -1301,7 +1301,7 @@ powerPlusIsMult {m} = rewrite powerOneNeutral 2 in rewrite multCommPower2 {m = m
 
 ||| Prepare a single new qubitt; this is necessary to define separately due to Idris not being able to figure out some type equalities die to the use of powers
 supplyQubitM : {n:Nat} -> UStateT (Matrix (power 2 n) (power 2 n)) (UnitaryMatrix (S n)) Qubit
-supplyQubitM = MkUST (newQubit') where
+supplyQubitM = mkUST (newQubit') where
   newQubit' : {m:Nat} -> (1 _ : Matrix (power 2 m) (power 2 m)) -> (LPair (UnitaryMatrix (S m)) (Qubit))
   newQubit' {m = Z} un =
     let ([qubit] # (v', newcounter))= newQubitsPointers 1 Z [] 
@@ -1373,7 +1373,7 @@ newQuditsUMST :
   {base : Nat} -> {n : Nat} ->
   (p : Nat) ->
   UStateT (QuditUM base n) (QuditUM base (n + p)) (LVect p Qubit)
-newQuditsUMST {base} {n} p = MkUST (newQuditsUM' {base} {m = n} p)
+newQuditsUMST {base} {n} p = mkUST (newQuditsUM' {base} {m = n} p)
 
 applyUMSTR_Qudit' :
   {base : Nat} -> {n : Nat} -> {i : Nat} ->
@@ -1392,7 +1392,7 @@ applyUMSTSimulatedR_Qudit :
   {base : Nat} -> {n : Nat} -> {i : Nat} ->
   (1 _ : UStateT (QuditUM base n) (QuditUM base n) (LVect i Qubit)) ->
   UStateT (QuditUM base n) (QuditUM base n) (LVect i Qubit)
-applyUMSTSimulatedR_Qudit ust = MkUST (applyUMSTR_Qudit' ust)
+applyUMSTSimulatedR_Qudit ust = mkUST (applyUMSTR_Qudit' ust)
 
 private
 neutralRunQuditUM :

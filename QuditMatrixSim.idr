@@ -46,7 +46,7 @@ applyUnitaryOwnQUMSim :
   (1 _ : QuditUM base i) ->
   UStateT (QuditUM base n) (QuditUM base n) (LVect i Qubit)
 applyUnitaryOwnQUMSim qubits ui =
-  MkUST (applyUnitaryOwnQUMSim' qubits ui)
+  mkUST (applyUnitaryOwnQUMSim' qubits ui)
 
 ||| "applyUnitaryQUMSim'" lifts a Unitary i circuit to n wires (via applySafe) and left-multiplies it into the current unitary.
 applyUnitaryQUMSim' :
@@ -71,7 +71,7 @@ applyUnitaryQUMSim :
   Unitary i ->
   UStateT (QuditUM base n) (QuditUM base n) (LVect i Qubit)
 applyUnitaryQUMSim qubits ui =
-  MkUST (applyUnitaryQUMSim' qubits ui)
+  mkUST (applyUnitaryQUMSim' qubits ui)
 
 ||| "applyHQUMSim'" applies a single-qudit Fourier gate F_base on one wire and left-multiplies it into the current unitary.
 applyHQUMSim' :
@@ -92,7 +92,7 @@ applyHQUMSim :
   {base : Nat} -> {n : Nat} ->
   (1 _ : Qubit) ->
   UStateT (QuditUM base n) (QuditUM base n) (LVect 1 Qubit)
-applyHQUMSim qubit = MkUST (applyHQUMSim' qubit)
+applyHQUMSim qubit = mkUST (applyHQUMSim' qubit)
 
 ||| "applyPQUMSim'" applies a single-qudit phase-on-|1⟩ gate on one wire and left-multiplies it into the current unitary.
 applyPQUMSim' :
@@ -113,7 +113,7 @@ applyPQUMSim :
   {base : Nat} -> {n : Nat} ->
   (p : Double) -> (1 _ : Qubit) ->
   UStateT (QuditUM base n) (QuditUM base n) (LVect 1 Qubit)
-applyPQUMSim p qubit = MkUST (applyPQUMSim' qubit p)
+applyPQUMSim p qubit = mkUST (applyPQUMSim' qubit p)
 
 ||| "applyCNOTQUMSim'" applies the two-qudit SUM gate on wires (control,target) and left-multiplies it into the current unitary.
 applyCNOTQUMSim' :
@@ -135,7 +135,7 @@ applyCNOTQUMSim :
   {base : Nat} -> {n : Nat} ->
   (1 _ : Qubit) -> (1 _ : Qubit) ->
   UStateT (QuditUM base n) (QuditUM base n) (LVect 2 Qubit)
-applyCNOTQUMSim c t = MkUST (applyCNOTQUMSim' c t)
+applyCNOTQUMSim c t = mkUST (applyCNOTQUMSim' c t)
 
 ||| "adjointUSTQUMSim'" inverts a UStateT-built unitary via adjoint and left-multiplies it into the current unitary.
 adjointUSTQUMSim' :
@@ -157,7 +157,7 @@ adjointUSTQUMSim :
   {base : Nat} -> {n : Nat} ->
   (1 _ : UStateT (QuditUM base n) (QuditUM base n) (LVect i Qubit)) ->
   UStateT (QuditUM base n) (QuditUM base n) (LVect i Qubit)
-adjointUSTQUMSim ust = MkUST (adjointUSTQUMSim' ust)
+adjointUSTQUMSim ust = mkUST (adjointUSTQUMSim' ust)
 
 ||| "multiControlledQUM" builds an n-wire controlled unitary from a small ui,
 ||| enabled when all controls equal val, acting on the targets wires.
@@ -210,7 +210,7 @@ applyControlledQUMSim :
   (1 targets : LVect i Qubit) ->
   (1 ownUnitary : QuditUM base i) ->
   UStateT (QuditUM base (S n)) (QuditUM base (S n)) (LVect (S i) Qubit)
-applyControlledQUMSim c ts umi = MkUST (applyControlledQUMSim' c ts umi)
+applyControlledQUMSim c ts umi = mkUST (applyControlledQUMSim' c ts umi)
 
 ||| "applyMultipleControlledOwnQUMSim'" applies an i-wire unitary controlled by multiple wires all being 1.
 applyMultipleControlledOwnQUMSim' :
@@ -238,7 +238,7 @@ applyMultipleControlledOwnQUMSim :
   (1 ownUnitary : QuditUM base i) ->
   UStateT (QuditUM base ((S k) + n)) (QuditUM base ((S k) + n)) (LVect ((S k) + i) Qubit)
 applyMultipleControlledOwnQUMSim cs ts umi =
-  MkUST (applyMultipleControlledOwnQUMSim' cs ts umi)
+  mkUST (applyMultipleControlledOwnQUMSim' cs ts umi)
 
 ||| "applyParallelQUMSim'" composes two UStateT programs in sequence and concatenates their wire outputs.
 applyParallelQUMSim' :
@@ -264,7 +264,7 @@ applyParallelQUMSim :
   (1 _ : UStateT (QuditUM base n) (QuditUM base n) (LVect i Qubit)) ->
   (1 _ : UStateT (QuditUM base n) (QuditUM base n) (LVect j Qubit)) ->
   UStateT (QuditUM base n) (QuditUM base n) (LVect (i + j) Qubit)
-applyParallelQUMSim ust1 ust2 = MkUST (applyParallelQUMSim' ust1 ust2)
+applyParallelQUMSim ust1 ust2 = mkUST (applyParallelQUMSim' ust1 ust2)
 
 ||| "runSplitQUMSim" runs a split-output UStateT program and returns both wire lists.
 private
@@ -292,7 +292,7 @@ combineAbsQUMSim :
   {base : Nat} -> {n : Nat} -> {i : Nat} -> {j : Nat} ->
   (1 _ : UStateT (QuditUM base n) (QuditUM base n) (LPair (LVect i Qubit) (LVect j Qubit))) ->
   UStateT (QuditUM base n) (QuditUM base n) (LVect (i + j) Qubit)
-combineAbsQUMSim q = MkUST (combineAbsQUM' q)
+combineAbsQUMSim q = mkUST (combineAbsQUM' q)
 
 ||| "controlMUSTQUM'" builds a target unitary from a pattern and applies it under multi-control (controls==1) on the chosen locations.
 controlMUSTQUM' :
@@ -321,4 +321,4 @@ controlMUSTQUMSim :
   (targetPattern : ((1 _ : LVect j Qubit) ->
                     UStateT (QuditUM base j) (QuditUM base j) (LVect j Qubit))) ->
   UStateT (QuditUM base n) (QuditUM base n) (LVect (i + j) Qubit)
-controlMUSTQUMSim ctrl loc targetP = MkUST (controlMUSTQUM' ctrl loc targetP)
+controlMUSTQUMSim ctrl loc targetP = mkUST (controlMUSTQUM' ctrl loc targetP)

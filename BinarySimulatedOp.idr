@@ -251,7 +251,7 @@ applyUnitarySimulatedCirc' lvIn ui (MkBinarySimulatedOp un v counter str)=
 ||| BinarySimulatedOp impolementation of applyUnitary
 export
 applyUnitarySimulatedCirc : {n : Nat} -> {i : Nat} -> (1 _ : LVect i Qubit) -> Unitary i -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i Qubit)
-applyUnitarySimulatedCirc lvect ui = MkUST (applyUnitarySimulatedCirc' lvect (ui))
+applyUnitarySimulatedCirc lvect ui = mkUST (applyUnitarySimulatedCirc' lvect (ui))
 
 ||| Helper for BinarySimulatedOp impolementation of applyUnitaryOwn (using self-defined datatype for unitaries)
 private
@@ -266,7 +266,7 @@ applyUnitaryOwnCirc' {n} {i} (MkBinarySimulatedOp ui vacuousV vacuousC vacuousSt
 export
 applyUnitaryOwnSimulatedCirc : {n : Nat} -> {i : Nat} -> (1 _ :LVect i Qubit) -> 
   (1 _ : BinarySimulatedOp i) -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i Qubit)
-applyUnitaryOwnSimulatedCirc {n} {i} qbits simop = MkUST (applyUnitaryOwnCirc' {n =n} {i = i} simop qbits)
+applyUnitaryOwnSimulatedCirc {n} {i} qbits simop = mkUST (applyUnitaryOwnCirc' {n =n} {i = i} simop qbits)
 
 
 ||| Auxiliary functstrn for applying a circuit to some qubits
@@ -279,7 +279,7 @@ combineAbs' ust (MkBinarySimulatedOp us v counter str) = let (Builtin.(#) opOut 
 export
 combineAbsSimulatedCirc : {n : Nat} -> {i : Nat} -> {j:Nat} ->
   (1_ : (UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)) ))-> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect (i+j) Qubit)
-combineAbsSimulatedCirc q = MkUST (combineAbs' q)
+combineAbsSimulatedCirc q = mkUST (combineAbs' q)
 
 --(1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LPair Qubit (LVect i Qubit))) ->
 
@@ -297,7 +297,7 @@ applyControlSimulated' {n} c ts (MkBinarySimulatedOp ui vecuousV vacuousC vacuou
 export
 applyControlAbsSimulatedCirc: {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1 _ : LVect i Qubit) -> (1 ownUnitary : BinarySimulatedOp i) ->      
     UStateT (BinarySimulatedOp (S n)) (BinarySimulatedOp (S n)) (LVect (S i) Qubit)
-applyControlAbsSimulatedCirc c ts ust = MkUST (applyControlSimulated' c ts ust)   
+applyControlAbsSimulatedCirc c ts ust = mkUST (applyControlSimulated' c ts ust)   
 
 
 invertBinarySimulatedOp : (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i Qubit)) -> (1_ : (BinarySimulatedOp n)) -> LPair (BinarySimulatedOp n) (LVect i Qubit)
@@ -308,7 +308,7 @@ invertBinarySimulatedOp ust (MkBinarySimulatedOp u v counter str)=
               (MkBinarySimulatedOp unew v counter str) # (lvOut)
 export
 adjointUSTSimCirc' : {n:Nat} ->(1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i Qubit)) -> (UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i Qubit))
-adjointUSTSimCirc' ust = MkUST (invertBinarySimulatedOp ust)
+adjointUSTSimCirc' ust = mkUST (invertBinarySimulatedOp ust)
 
 
 
@@ -322,7 +322,7 @@ applyWithSplitLVects' ust (MkBinarySimulatedOp un v counter str) =
 ||| Implementatstrn of abstract split application - representatstrnally useful
 applyWithSplitLVectsSimulatedCirc : {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))
                          -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit))
-applyWithSplitLVectsSimulatedCirc ust = MkUST (applyWithSplitLVects' ust)
+applyWithSplitLVectsSimulatedCirc ust = mkUST (applyWithSplitLVects' ust)
 
 applyParallelSimulatedBinary': {n : Nat} -> {i : Nat} -> (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i Qubit))     
                    -> (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect j Qubit))   
@@ -337,7 +337,7 @@ applyParallelSimulatedBinary' ust1 ust2 (MkBinarySimulatedOp un vn cn st) =
 export
 applyParallelSimulatedBinary: {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) ((LVect i Qubit)))
                         -> (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) ((LVect j Qubit))) -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect (i + j) Qubit)
-applyParallelSimulatedBinary ust1 ust2 = MkUST (applyParallelSimulatedBinary' ust1 ust2)
+applyParallelSimulatedBinary ust1 ust2 = mkUST (applyParallelSimulatedBinary' ust1 ust2)
 
 ||| Depricated because Unsafe (but can be useful) -- Implementation of exporting self out of SimulatedOp
 public export
@@ -359,7 +359,7 @@ applyMControlSimulated' {n} {i} {k = k} (c::cs) ts (MkBinarySimulatedOp ui vacuo
 export
 applyMControlBinarySimulatedOp: {n : Nat} -> {i : Nat} -> {k : Nat} -> (1_ : LVect (S k) Qubit) -> (1_ : LVect i Qubit) -> (1_ :  BinarySimulatedOp i) ->      
     UStateT (BinarySimulatedOp ((S k) + n)) (BinarySimulatedOp ((S k) +  n)) (LVect ((S k) +  i) Qubit)
-applyMControlBinarySimulatedOp cs ts ui = MkUST (applyMControlSimulated' cs ts ui)   
+applyMControlBinarySimulatedOp cs ts ui = mkUST (applyMControlSimulated' cs ts ui)   
 
 ||| implementation of parsion from a neutral element
 private
@@ -391,7 +391,7 @@ controlMUST' {n} {i} {j} ctrl locs targetP  (MkBinarySimulatedOp un vn counter s
 controlMUSTSimOp:  {n : Nat} -> {i : Nat} -> {j : Nat} ->(1 controls : LVect i Qubit) -> (1 locations : LVect j Qubit) ->
                    (targetPattern : ((1_ :LVect j Qubit) -> UStateT (BinarySimulatedOp j) (BinarySimulatedOp j) (LVect j Qubit)))
                    -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect (i + j) Qubit)
-controlMUSTSimOp ctrl loc targetP = MkUST (controlMUST' ctrl loc targetP)
+controlMUSTSimOp ctrl loc targetP = mkUST (controlMUST' ctrl loc targetP)
 
 ||| helper for general controlling operation over  UStateT
 controlUST': {n : Nat} -> {i : Nat} -> (1 control : Qubit) -> (1 locations : LVect i Qubit) ->
@@ -408,7 +408,7 @@ controlUST' {n} {i} ctrl locs targetP  (MkBinarySimulatedOp un vn counter str) =
 controlUSTBinSimOp: {n : Nat} -> {i : Nat} -> (1 control : Qubit) -> (1 locations : LVect i Qubit) ->
                    (targetPattern : ((1_ :LVect i Qubit) -> UStateT (BinarySimulatedOp i) (BinarySimulatedOp i) (LVect i Qubit)))
                    -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect (S i) Qubit)
-controlUSTBinSimOp ctrl loc targetP = MkUST (controlUST' ctrl loc targetP)
+controlUSTBinSimOp ctrl loc targetP = mkUST (controlUST' ctrl loc targetP)
 
 
 export
