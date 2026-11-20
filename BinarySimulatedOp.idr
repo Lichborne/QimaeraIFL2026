@@ -223,7 +223,7 @@ runSimulatedCircVis {n} s = LIO.run (do
                     [] => pure []
                     (x :: xs) => pure (x :: xs))
 
-||| Depricared because Unsafe, but useful sometimes: Implementation of run for BinarySimulatedOp
+||| Depricated because Unsafe, but useful sometimes: Implementation of run for BinarySimulatedOp
 public export
 runSimulatedCircU : {i:Nat} -> (1_: BinarySimulatedOp n) -> (1 _ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LVect i Qubit) ) -> LPair (BinarySimulatedOp n) (LVect i Qubit)
 runSimulatedCircU {i = i} simop ust = runUStateT simop ust
@@ -235,7 +235,7 @@ exportUnitary' {i = i} simop ust = let (MkBinarySimulatedOp un vn counter str) #
                                       let () = discardq lvect in
                                           un
 
-||| Implementatstrn of runSplit BinarySimulatedOp
+||| Implementation of runSplit BinarySimulatedOp
 public export
 runSplitSimulatedCircU : {i:Nat} -> {j:Nat} -> (1_: BinarySimulatedOp n) -> (1 _ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))  
                 -> LPair (BinarySimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit))
@@ -319,7 +319,7 @@ applyWithSplitLVects' ust (MkBinarySimulatedOp un v counter str) =
         let unew = compose unew un in
           do ((MkBinarySimulatedOp unew vnew counter str) # (lvect))
 
-||| Implementatstrn of abstract split application - representatstrnally useful
+||| Implementation of abstract split application - representatstrnally useful
 applyWithSplitLVectsSimulatedCirc : {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))
                          -> UStateT (BinarySimulatedOp n) (BinarySimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit))
 applyWithSplitLVectsSimulatedCirc ust = mkUST (applyWithSplitLVects' ust)

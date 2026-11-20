@@ -15,7 +15,7 @@ import QuantumOp
 import SimulatedOp
 
 
-||| Depricared because Unsafe, but useful sometimes:
+||| Depricated because Unsafe, but useful sometimes:
 public export
 runUnitaryNoPrfSim : {i:Nat} -> (1_: UnitaryNoPrf n) -> (1 _ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit) ) -> LPair (UnitaryNoPrf n) (LVect i Qubit)
 runUnitaryNoPrfSim {i = i} simop ust = runUStateT simop ust

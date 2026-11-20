@@ -52,7 +52,7 @@ mergeVects (x :: xs) [] = mergeVects xs []
 mergeVects (x :: xs) (y :: ys) = mergeVects xs (y::ys)
 
 
-||| Depricared because Unsafe, but useful sometimes: Implementation of run for SimulatedOp
+||| Depricated because Unsafe, but useful sometimes: Implementation of run for SimulatedOp
 public export
 run' : {i:Nat} -> (1_: SimulatedOp n) -> (1 _ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit) ) -> LPair (SimulatedOp n) (LVect i Qubit)
 run' {i = i} simop ust = runUStateT simop ust
