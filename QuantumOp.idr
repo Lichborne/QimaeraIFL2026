@@ -418,7 +418,7 @@ Consumable Nat where
   consume (Z) = ()
   consume ((S k)) = ()
 
-export 
+private
 consLinQ : (Qubit) -> (1_: Vect n Qubit) -> Vect (S n) Qubit
 consLinQ (MkQubit Z) [] = [(MkQubit Z)]
 consLinQ (MkQubit Z) (x :: xs) = (MkQubit Z) :: x :: xs
@@ -435,7 +435,7 @@ toLVectQ : (Vect n Nat) -> (LVect n Qubit)
 toLVectQ [] = []
 toLVectQ (k :: xs) = (MkQubit k) :: (toLVectQ xs)
 
-export
+private
 toLVectQQ : (Vect n Qubit) -> (LVect n Qubit)
 toLVectQQ [] = []
 toLVectQQ (MkQubit k :: xs) = (MkQubit k) :: (toLVectQQ xs)
@@ -460,7 +460,7 @@ export
 discardq : (1_ : LVect n Qubit) -> ()
 discardq lvect = consume (toVectQ lvect)
 
-export
+private
 unrestrictVec : (1 _ : Vect n Qubit) -> ((Vect n Qubit))
 unrestrictVec [] = unrestricted $ MkBang []
 unrestrictVec (x :: xs) =  (unrestricted $ MkBang (x)) :: (unrestricted $ MkBang (unrestrictVec xs))
@@ -469,7 +469,7 @@ private
 toVectUnr : (1 _ : LVect n Qubit) -> ((Vect n Qubit))
 toVectUnr any = unrestrictVec (toVectQ any)
 
-export
+private
 toVectQNonLin : (1_ : Vect n Qubit) -> Pair (Vect n Qubit) (Vect n Qubit)
 toVectQNonLin [] = MkPair [] []
 toVectQNonLin ((MkQubit k):: xs) = let rest = (toVectQNonLin xs) in MkPair ((MkQubit k) :: (fst rest)) ((MkQubit k) :: (snd rest)) 
