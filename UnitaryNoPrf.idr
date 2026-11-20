@@ -190,7 +190,8 @@ public export
 controlledP : Double -> UnitaryNoPrf 2
 controlledP p = 
   let p1 = CNOT 0 1 (P (p/2) 1 IdGate)
-  in CNOT 0 1 (P (-p/2) 1 p1)
+      p2 = CNOT 0 1 (P (-p/2) 1 p1)
+  in P (p/2) 0 p2
 
 |||Make the controlled version of a gate
 public export

@@ -85,10 +85,15 @@ example_uAbs [q0, q1] = do
   [q0] <- applyH q0
   [q0, q1] <- applyCNOT q0 q1 
   [q0] <- applyP (0.7854) q0
+  [q0] <- applyH q0
   pure [q0, q1]
 
 idAbs : UnitaryOp t => (1_: LVect 1 Qubit) -> (UStateT (t 1) (t 1) (LVect 1 Qubit))
 idAbs q = pure q
+
+||| correction for example_uAbs: T^dagger, as in runRUS
+tAdjAbs : UnitaryOp t => (1_: LVect 1 Qubit) -> (UStateT (t 1) (t 1) (LVect 1 Qubit))
+tAdjAbs [q] = applyP (-pi/4) q
 {-
 ||| Figure 8 of https://arxiv.org/abs/1311.1074
 example_u' : Unitary n
@@ -99,14 +104,14 @@ runRUSAbs : QuantumOp t => UnitaryOp t => IO Bool
 runRUSAbs = do
   [b] <- runQ (do
               q <- newQubit {t = t}
-              q <- RUSAbs q (example_uAbs) idAbs
+              q <- RUSAbs q (example_uAbs) tAdjAbs
               measure q
          )
   pure b
 
 export
 testRUSAbs : IO Bool
-testRUSAbs = runRUS {t = BinarySimulatedOp}
+testRUSAbs = runRUSAbs {t = BinarySimulatedOp}
 
 export
 testMultipleRUS : Nat -> IO ()

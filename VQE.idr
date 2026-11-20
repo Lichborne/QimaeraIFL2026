@@ -146,7 +146,7 @@ encodingUnitary {n = S k} (PauliI :: xs) = rewrite sym $ lemmaplusOneRight k in 
 encodingUnitary {n = S k} (PauliX :: xs) =  let p1 = lemmakLTSk k
   in rewrite sym $ lemmaplusOneRight k in  CNOT (S k) 0 (H (S k) ((encodingUnitary xs) # IdGate {n=1}))
 encodingUnitary {n = S k} (PauliY :: xs) =  let p1 = lemmakLTSk k
-  in rewrite sym $ lemmaplusOneRight k in CNOT (S k) 0 (H (S k) ((encodingUnitary xs) # IdGate {n=1})) 
+  in rewrite sym $ lemmaplusOneRight k in CNOT (S k) 0 (H (S k) (P (-pi/2) (S k) ((encodingUnitary xs) # IdGate {n=1})))
 encodingUnitary {n = S k} (PauliZ :: xs) = let p1 = lemmakLTSk k
   in rewrite sym $ lemmaplusOneRight k in CNOT (S k) 0 ((encodingUnitary xs) # IdGate {n=1})
 
@@ -171,7 +171,8 @@ encodingUnitaryOp {i = S k}  {n = n} (PauliX :: xs) (q::qs)= do  -- CNOT (S k) 0
 encodingUnitaryOp {i = S k} {n = n} (PauliY :: xs) (q::qs)= do -- CNOT (S k) 0 (H (S k) (S (S k) ((encodingUnitary xs) # IdGate {n=1})))
         (qs) # [drop] <- splitLastUtil (q::qs) 
         (target::qs) <- (encodingUnitaryOp xs (qs))
-        [qxH] <- applyH drop
+        [qxS] <- applyP (-pi/2) drop
+        [qxH] <- applyH qxS
         (qxf::[first]) <- applyCNOT qxH target  
         ret <- combineSingleR (first::qs) qxf
         pure $ ret 

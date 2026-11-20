@@ -123,8 +123,8 @@ qftRec {i = (S (S k))} (q::qs) = do
    (qs # [c]) <- splitLastUtil (q::qs)
    (t::qs) <- qftRec qs
    [c, t] <- cRm (S (S k)) c t
-   qst <- combineSingleR qs t
-   pure (c::qst)
+   qsc <- combineSingleR qs c
+   pure (t::qsc)
 
 ||| QFT unitary circuit for n qubits, n -- number of qubits
 export
