@@ -1,0 +1,308 @@
+module Qimaera.Core.Implementations.SimulatedOp
+import Data.Vect
+import Data.Nat
+import Control.Monad.State
+import System.File
+import Utilities.Injection
+import Utilities.Lemmas
+import Utilities.UnitaryLinear
+import Utilities.UnitaryNoPrf
+import Qimaera.Core.UStateT
+import Control.Linear.LIO
+import Utilities.LinearTypes
+import Data.String
+import Utilities.Matrix
+import Data.Linear.Notation
+import Data.Linear.Interface
+import Qimaera.Core.QuantumOp
+import Utilities.Complex
+
+
+------ SIMULATION : AUXILIARY FUNCTIONS ------
+
+
+||| we need to turn Unitary i into UnitaryNoPrf i
+public export
+toNoPrf : Unitary n -> UnitaryNoPrf n
+toNoPrf IdGate = IdGate
+toNoPrf (H j g) = (H j (toNoPrf g)) 
+toNoPrf (P p j g) = (P p j (toNoPrf g))
+toNoPrf (CNOT c t g) = (CNOT c t (toNoPrf g))
+
+public export
+listIndices : (1 _ : SimulatedOp n) -> (1 _ : LVect i Qubit) -> LFstPair (LPair (SimulatedOp n) (LVect i Qubit)) (Vect i Nat)
+listIndices qs [] = (qs # []) # []
+listIndices qs (x :: xs) = 
+  let (qs' # x') # y = listIndex qs x
+      (qs2 # xs') # ys = listIndices qs' xs
+  in (qs2 # (x' :: xs')) # (y :: ys)
+
+
+||| as the name suggests
+lvectify : (1 _ : Vect i Qubit) -> (LVect i Qubit)
+lvectify [] = []
+lvectify (x :: xs) = LinearTypes.(::) x (lvectify xs)
+
+||| merge vectors (used for deletion of duplicates)
+mergeVects : (1 _ : Vect n Qubit) -> (1 _ : Vect i Qubit) -> ( LVect i Qubit)
+mergeVects [] [] = []
+mergeVects [] vect = lvectify vect
+mergeVects (x :: xs) [] = mergeVects xs []
+mergeVects (x :: xs) (y :: ys) = mergeVects xs (y::ys)
+
+
+||| Depricated because Unsafe, but useful sometimes: Implementation of run for SimulatedOp
+private
+run' : {i:Nat} -> (1_: SimulatedOp n) -> (1 _ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit) ) -> LPair (SimulatedOp n) (LVect i Qubit)
+run' {i = i} simop ust = runUStateT simop ust
+
+||| Depricated because Unsafe (but can be useful) -- Implementation of exporting self out of SimulatedOp
+private
+exportSelf' : {i:Nat} -> (1_: SimulatedOp n) -> (1 _ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit) ) -> SimulatedOp n
+exportSelf' {i = i} simop ust = let op # lvect = runUStateT simop ust in
+                                      let () = discardq lvect in
+                                          op
+
+||| Implementation of exporting just a unitary out of SimulatedOp
+private
+exportUnitary' : {i:Nat} -> (1_: SimulatedOp n) -> (1 _ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit) ) -> Unitary n
+exportUnitary' {i = i} simop ust = let (MkSimulatedOp qn un vn counter) = exportSelf' simop ust in un
+
+||| Implementation of runSplit SimulatedOp
+private
+runSplit' : {i:Nat} -> {j:Nat} -> (1_: SimulatedOp n) -> (1 _ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))  
+                -> LPair (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit))
+runSplit' {i = i} simop ust = runUStateT simop ust
+
+failedIoOp : {n:Nat} ->  (v: Vect i Qubit) -> (un: Unitary n) -> (ui: Unitary i) -> IO ()
+failedIoOp {n} v un ui = do
+        () <- putStrLn ("The vector " ++ show (toVectN v) ++ "is not Injective with respect to " ++ show n ++ ".")
+        () <- putStrLn ("Therefore the application of " ++ show ui ++ " to " ++ show un ++ " could not be carried out.")
+        pure () 
+
+||| Helper for implementation of  applyUnitary
+applyUnitary' : {n : Nat} -> {i : Nat} -> --let lvOut # vect = distributeDupedLVectVect lvIn in ( MkUnitary (apply ui u vect) ) # lvOut
+                (1 _ : LVect i Qubit) -> Unitary i -> (1 _ : SimulatedOp n) -> (LPair (SimulatedOp n) (LVect i Qubit))
+applyUnitary' {n} {i} lvIn ui (MkSimulatedOp qs un v counter)= 
+    let lvOut # vect = distributeDupedLVectVect lvIn in 
+      let unew # _ = (UnitaryLinear.applySafe ui un (positions v vect)) in (MkSimulatedOp qs (unew) v counter) # (lvOut)
+              
+
+||| SimulatedOp implementation of applyUnitary
+export
+applyUnitarySimulated : {n : Nat} -> {i : Nat} -> (1 _ : LVect i Qubit) -> Unitary i -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit)
+applyUnitarySimulated lvect ui = mkUST (applyUnitary' lvect (ui))
+
+||| Helper for SimulatedOp implementation of applyUnitaryOwn (using self-defined datatype for unitaries)
+private
+applyUnitaryOwn' : {n : Nat} -> {i : Nat} -> (1 _ : SimulatedOp i) -> (1 _ : LVect i Qubit) ->
+   (1 _ : SimulatedOp n) -> (LPair (SimulatedOp n) (LVect i Qubit))
+applyUnitaryOwn' {n} {i} (MkSimulatedOp vacuousQS ui vacuousV vacuousC) lvIn (MkSimulatedOp qs un v counter) = 
+ let lvOut # vect = distributeDupedLVectVect lvIn in 
+    let unew # _ = (UnitaryLinear.applySafe ui un (positions v vect)) in (MkSimulatedOp qs (unew) v counter) # (lvOut)
+              
+
+||| SimulatedOp implementation of applyUnitaryOwn (using self-defined datatype for unitaries)
+export
+applyUnitaryOwnSimulated : {n : Nat} -> {i : Nat} -> (1 _ :LVect i Qubit) -> 
+  (1 _ : SimulatedOp i) -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit)
+applyUnitaryOwnSimulated {n} {i} qbits simop = mkUST (applyUnitaryOwn' {n =n} {i = i} simop qbits)
+
+
+||| Helper for SimulatedOp implementation of abstract unitary application (that is, whatever one built using UStateT)
+applyUnitaryAbs': {n : Nat} -> {i : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))      
+                   -> (1 _ : SimulatedOp n) -> LPair (SimulatedOp n) (LVect i Qubit)
+applyUnitaryAbs' ust (MkSimulatedOp qs un v counter) = 
+  let ((MkSimulatedOp vacuousQS unew vnew vacuousCounter) # lvect) = runUStateT (MkSimulatedOp qs un v counter) ust in
+        let unew = compose unew un in
+          do ((MkSimulatedOp qs unew vnew counter) # (lvect))
+
+||| SimulatedOp implementation of abstract unitary application (that is, whatever one built using UStateT)
+applyUnitaryAbsSimulated : {n : Nat} -> {i : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))      
+                   -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect i  Qubit)
+applyUnitaryAbsSimulated ust = mkUST (applyUnitaryAbs' ust )
+
+
+||| Auxiliary function for applying a circuit to some qubits
+private
+combineAbs' : {n : Nat} -> {i : Nat} -> {j:Nat} ->
+  (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit))) -> (1 _ : SimulatedOp n) -> (LPair (SimulatedOp n) (LVect (i +j) Qubit))
+combineAbs' ust (MkSimulatedOp qs us v counter) = let (Builtin.(#) opOut (lvect #rvect)) = (runSplit' (MkSimulatedOp qs us v counter) ust) in do
+ (Builtin.(#) opOut (LinearTypes.(++) lvect rvect))
+ 
+export
+combineAbsSimulated : {n : Nat} -> {i : Nat} -> {j:Nat} ->
+  (1_ : (UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)) ))-> UStateT (SimulatedOp n) (SimulatedOp n) (LVect (i+j) Qubit)
+combineAbsSimulated q = mkUST (combineAbs' q)
+
+--(1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair Qubit (LVect i Qubit))) ->
+
+--(1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair Qubit (LVect i Qubit))) ->
+
+||| Auxiliary function for applying a control to a UStateT
+private
+applyControlSimulated': {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1 _ : LVect i Qubit) -> (1 ownUnitary : SimulatedOp i)->      
+    (1_ : SimulatedOp (S n)) -> LPair (SimulatedOp (S n)) (LVect (S i) Qubit)
+applyControlSimulated' {n} c ts (MkSimulatedOp vacuousQS ui vecuousV vacuousC) (MkSimulatedOp qsn usn vsn csn)= 
+  let c # k = qubitToNatPair c in
+    let lvOut # targets = distributeDupedLVectVect ts in 
+      let usnOut # _ = (applySafe (controlled ui) usn (positions vsn (k::targets))) in
+        (MkSimulatedOp qsn usnOut vsn csn)  # (c :: lvOut)
+
+export
+applyControlAbsSimulated: {n : Nat} -> {i : Nat} -> (1 _ : Qubit) -> (1 _ : LVect i Qubit) -> (1 ownUnitary : SimulatedOp i) ->   
+    UStateT (SimulatedOp (S n)) (SimulatedOp (S n)) (LVect (S i) Qubit)
+applyControlAbsSimulated c ts simui = mkUST (applyControlSimulated' c ts simui)   
+
+applyWithSplitLVects' : {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))
+                         -> (1_: SimulatedOp n) -> LPair (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit))
+applyWithSplitLVects' ust (MkSimulatedOp qs un v counter) = 
+  let ((MkSimulatedOp vacuousQS unew vnew vacuousCounter) # lvect) = runUStateT (MkSimulatedOp qs un v counter) ust in
+      let unew = compose unew un in
+          do ((MkSimulatedOp qs unew vnew counter) # (lvect))
+
+||| Implementation of abstract split application - representationally useful
+applyWithSplitLVectsSimulated : {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))
+                         -> UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit))
+applyWithSplitLVectsSimulated ust = mkUST (applyWithSplitLVects' ust)
+
+applyParallelSimulated': {n : Nat} -> {i : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))     
+                   -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect j Qubit))   
+                   -> (1 _ : SimulatedOp n) -> LPair (SimulatedOp n) (LVect (i + j) Qubit)
+applyParallelSimulated' ust1 ust2 (MkSimulatedOp qs un v counter) = 
+  let ((MkSimulatedOp vacuousQS1 unew1 vnew1 vacuousCounter1) # lvecti) = runUStateT (MkSimulatedOp qs IdGate v counter) ust1 in -- there are multiple choices for what order to do what in, this is one correct one
+    let ((MkSimulatedOp vacuousQS2 unew2 vnew2 vacuousCounter2) # lvectj) = runUStateT (MkSimulatedOp qs IdGate v counter) ust2 in
+        let unewest = compose unew1 un in
+          let uOut = compose unew2 unewest in
+            do ((MkSimulatedOp qs uOut vnew2 counter) # (lvecti ++ lvectj))
+
+applyParallelSimulated: {n : Nat} -> {i : Nat} -> {j : Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) ((LVect i Qubit)))
+                        -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) ((LVect j Qubit))) -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect (i + j) Qubit)
+applyParallelSimulated ust1 ust2 = mkUST (applyParallelSimulated' ust1 ust2)
+
+||| Helper for implementation of abstract controlled split application 
+applyControlledUSplitSim' : {i:Nat} -> {j:Nat} -> {n : Nat} -> (1 _ : Qubit) -> (1_ : LVect i Qubit) -> (1_ : LVect j Qubit) -> (1_ : SimulatedOp (i + j))
+                             -> (1_ : SimulatedOp (S n)) -> LPair (SimulatedOp (S n)) (LPair (LVect (S (i)) Qubit) (LVect j Qubit))
+applyControlledUSplitSim' c tsi tsj (MkSimulatedOp dummyqs uij dummyvi dummyc) (MkSimulatedOp qsn usn vsn csn)= 
+  let c # k = qubitToNatPair c in
+    let lvMid # targets = distributeDupedLVectVect (tsi ++ tsj) in
+      let lvOutL # lvOutR = splitLVinto i j lvMid in
+        let usnOut # _ = (applySafe (controlled uij) usn (positions vsn (k::targets))) in
+          (MkSimulatedOp qsn usnOut vsn csn) # (c :: lvOutL # lvOutR)
+
+||| Implementation of abstract controlled split application     
+applyControlledSimulatedSplit: {i:Nat} -> {j:Nat} -> {n : Nat} -> (1 _ : Qubit) -> (1_ : LVect i Qubit) -> (1_ : LVect j Qubit) -> (1_ : SimulatedOp (i + j))
+                             -> UStateT (SimulatedOp (S n)) (SimulatedOp (S n)) (LPair (LVect (S (i)) Qubit) (LVect j Qubit))
+applyControlledSimulatedSplit c tsi tsj simop = mkUST $ applyControlledUSplitSim' c tsi tsj simop  
+
+
+invert: (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit)) -> (1_ : (SimulatedOp n)) -> LPair (SimulatedOp n) (LVect i Qubit)
+invert ust (MkSimulatedOp qn u v counter)=  
+    let (MkSimulatedOp dummyqs un vn dummyc) # lvOut = runUStateT (MkSimulatedOp (neutralIdPow n) (IdGate {n = n}) v counter) ust in
+        let invu = adjoint un in
+            let unew = compose invu u in
+                (MkSimulatedOp qn unew v counter) # (lvOut)
+export
+adjointUST' : {n:Nat} -> (1_ : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit)) -> (UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))
+adjointUST' ust = mkUST (invert ust)
+
+-------------------------------------------------------------------------
+||| Other situationally useful, but not necessary interface functions
+
+neutralOp : UnitaryOp t => {n : Nat} -> ((t n)) 
+
+
+neutralWithQubits : UnitaryOp t => {n : Nat} -> (1 _ : LVect n Qubit) -> (LPair (t n) (LVect n Qubit))  
+
+
+||| helper for controlling operation over self-defined operation
+private
+applyMControlSimulated': {n : Nat} -> {i : Nat} -> {k : Nat} -> (1_ : LVect (S k) Qubit) -> (1_ : LVect i Qubit) -> (1_ :  SimulatedOp i) ->
+    (1_ : SimulatedOp ( (S k) + n )) -> LPair ( SimulatedOp ((S k) + n)) (LVect ((S k) + i) Qubit)
+applyMControlSimulated' {n} {i} [] ts ui usn impossible
+applyMControlSimulated' {n} {i} {k = k} (c::cs) ts (MkSimulatedOp vacuousQS ui vacuousV vacuousC) (MkSimulatedOp qs usn vsn count) = 
+  let lvControls # controls = distributeDupedLVectVect (c::cs) in 
+    let lvOut # targets = distributeDupedLVectVect ts in 
+      let usnOut # _ = (applySafe (multipleControlled (S k) ui) usn (positions vsn (controls ++ targets))) in
+        (MkSimulatedOp qs usnOut vsn count) # (lvControls ++ lvOut)
+
+||| Implementation of controlling operation over self-defined operation
+export
+applyMControlSimulatedOp: {n : Nat} -> {i : Nat} -> {k : Nat} -> (1_ : LVect (S k) Qubit) -> (1_ : LVect i Qubit) -> (1_ :  SimulatedOp i) ->      
+    UStateT (SimulatedOp ((S k) + n)) (SimulatedOp ((S k) +  n)) (LVect ((S k) +  i) Qubit)
+applyMControlSimulatedOp cs ts ui = mkUST (applyMControlSimulated' cs ts ui)   
+
+||| Implementation of a neutral parsing
+private
+neutralRun' : {n:Nat} -> (1_ : UStateT (SimulatedOp 0) (SimulatedOp n) (LVect n Qubit)) -> SimulatedOp n
+neutralRun' ust = let op # lvect = runUStateT (MkSimulatedOp (neutralIdPow 0) (IdGate {n = 0}) [] 0) ust in
+                        let () = discardq lvect in
+                          op 
+
+||| Implementation of build
+export
+buildUnitary': {n:Nat} -> ((1_ : LVect n Qubit) -> (UStateT (SimulatedOp n) (SimulatedOp n) (LVect n Qubit))) -> SimulatedOp n
+buildUnitary' {n} f = neutralRun' (do
+  qs <- supplyQubits n
+  qsOut <- applyUStateT (f qs)
+  pure qsOut) 
+
+||| helper for control over UStateT - not necessary, default definition works
+controlUST': {n : Nat} -> {i : Nat} -> (1 control : Qubit) -> (1 locations : LVect i Qubit) ->
+                   (targetPattern : ((1_ :LVect i Qubit) -> UStateT (SimulatedOp i) (SimulatedOp i) (LVect i Qubit)))
+                   -> (1_ :SimulatedOp n) -> LPair (SimulatedOp n) (LVect (S i) Qubit)
+controlUST' {n} {i} ctrl locs targetP  (MkSimulatedOp state un vn counter) = let (MkSimulatedOp vacqs u vacvn vaccounter) = buildUnitary' {n = i} targetP in
+  let q # c = qubitToNatPair ctrl in
+  let qs # ts= distributeDupedLVectVect locs in
+    let uc = controlled u in
+      let unOut # _ = (applySafe uc un (positions vn (c::ts))) in
+        (MkSimulatedOp state unOut vn counter) # (q::qs)
+
+||| Implementation of controlling operation over  UStateT - not necessary, default definition works
+controlUSTSimOp: {n : Nat} -> {i : Nat} -> (1 control : Qubit) -> (1 locations : LVect i Qubit) ->
+                   (targetPattern : ((1_ :LVect i Qubit) -> UStateT (SimulatedOp i) (SimulatedOp i) (LVect i Qubit)))
+                   -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect (S i) Qubit)
+controlUSTSimOp ctrl loc targetP = mkUST (controlUST' ctrl loc targetP)
+
+
+||| helper for general controlling operation over  UStateT
+controlMUST': {n : Nat} -> {i : Nat} -> {j : Nat} ->(1 controls : LVect i Qubit) -> (1 locations : LVect j Qubit) ->
+                   (targetPattern : ((1_ :LVect j Qubit) -> UStateT (SimulatedOp j) (SimulatedOp j) (LVect j Qubit)))
+                   -> (1_: SimulatedOp n) -> LPair  (SimulatedOp n) (LVect (i + j) Qubit)
+controlMUST' {n} {i} {j} ctrl locs targetP  (MkSimulatedOp state un vn counter) = let (MkSimulatedOp vacqs u vacvn vaccounter) = buildUnitary' {n = j} targetP in
+  let lvControls # controls = distributeDupedLVectVect ctrl in 
+  let qs # targets = distributeDupedLVectVect locs in
+    let uc = multipleControlled i u in
+      let unOut # _ = (applySafe uc un (positions vn (controls ++ targets))) in
+        (MkSimulatedOp state unOut vn counter) # (lvControls ++ qs)
+
+||| Implementation of general controlling operation over  UStateT
+controlMUSTSimOp:  {n : Nat} -> {i : Nat} -> {j : Nat} ->(1 controls : LVect i Qubit) -> (1 locations : LVect j Qubit) ->
+                   (targetPattern : ((1_ :LVect j Qubit) -> UStateT (SimulatedOp j) (SimulatedOp j) (LVect j Qubit)))
+                   -> UStateT (SimulatedOp n) (SimulatedOp n) (LVect (i + j) Qubit)
+controlMUSTSimOp ctrl loc targetP = mkUST (controlMUST' ctrl loc targetP)
+
+
+
+export
+UnitaryOp SimulatedOp where
+  applyUnitary = applyUnitarySimulated
+  applyUnitaryOwn = applyUnitaryOwnSimulated
+  applyControlledOwn = applyControlAbsSimulated
+  applyParallel = applyParallelSimulated 
+  adjointUST = adjointUST'
+  combineAbs= combineAbsSimulated
+  buildUnitary = buildUnitary'
+  applyMultipleControlledOwn = applyMControlSimulatedOp
+  controlUST = controlUSTSimOp
+  multipleControlUST = controlMUSTSimOp
+  
+
+-------------------------------------------------------------------------
+
+{-
+  ||| these cannot now be used as part of the interface, their usage is a but more roundabout:
+    --runSplit = runSplit'
+    --applyWithSplitLVects = applyWithSplitLVectsSimulated
+    --applyUnitaryAbs = applyUnitaryAbsSimulated
+-}
