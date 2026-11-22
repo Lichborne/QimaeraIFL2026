@@ -1,12 +1,12 @@
-module Qimaera.Core.Implementations.UnitaryMatrixSim
+module Qimaera.Lib.ConcreteImplementations.UnitaryMatrixSim
 import Utilities.Matrix
 import Data.Vect
 import Data.Nat
 import Utilities.Complex
 import Utilities.Lemmas
-import Qimaera.Core.QuantumOp
+import Qimaera.Lib.QuantumOp
 import Utilities.UnitaryLinear
-import Qimaera.Core.UStateT
+import Qimaera.Lib.UStateT
 import Utilities.LinearTypes
 {-}
 export

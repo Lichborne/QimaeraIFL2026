@@ -1,4 +1,4 @@
-module Qimaera.Core.Implementations.SimulatedOp
+module Qimaera.Lib.ConcreteImplementations.SimulatedOp
 import Data.Vect
 import Data.Nat
 import Control.Monad.State
@@ -7,14 +7,14 @@ import Utilities.Injection
 import Utilities.Lemmas
 import Utilities.UnitaryLinear
 import Utilities.UnitaryNoPrf
-import Qimaera.Core.UStateT
+import Qimaera.Lib.UStateT
 import Control.Linear.LIO
 import Utilities.LinearTypes
 import Data.String
 import Utilities.Matrix
 import Data.Linear.Notation
 import Data.Linear.Interface
-import Qimaera.Core.QuantumOp
+import Qimaera.Lib.QuantumOp
 import Utilities.Complex
 
 

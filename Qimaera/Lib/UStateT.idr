@@ -1,8 +1,8 @@
-module Qimaera.Core.UStateT
+module Qimaera.Lib.UStateT
 import Control.Monad.State
 import Utilities.LinearTypes
 import Utilities.UnitaryLinear
-import public Qimaera.Core   -- the UStateT type, its constructor and its runner live in the root module
+import public Qimaera.Lib   -- the UStateT type, its constructor and its runner live in the root module
 
 
 

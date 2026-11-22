@@ -1,9 +1,9 @@
-module Qimaera.Core.QStateT
+module Qimaera.Lib.QStateT
 import Control.Monad.State
 import Utilities.LinearTypes
 import Control.Linear.LIO
 import Utilities.Lemmas
-import public Qimaera.Core   -- R, the QStateT type, its constructor and its runner live in the root module
+import public Qimaera.Lib   -- R, the QStateT type, its constructor and its runner live in the root module
 
 
 %default total

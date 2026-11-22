@@ -1,10 +1,10 @@
 module Examples.CoinToss
 
 import Data.Vect
-import Qimaera.Core.QStateT
-import Qimaera.Core.QuantumOp
+import Qimaera.Lib.QStateT
+import Qimaera.Lib.QuantumOp
 import Utilities.LinearTypes
-import Qimaera.Core.Implementations.SimulatedOp
+import Qimaera.Lib.ConcreteImplementations.SimulatedOp
 import Utilities.Lemmas
 
 ||| A fair coin toss (as an IO effect) via quantum resources.

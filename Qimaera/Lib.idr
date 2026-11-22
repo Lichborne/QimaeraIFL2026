@@ -1,12 +1,12 @@
-||| Root module of the library core.
+||| Root module of the library.
 |||
 ||| Idris scopes `private` names by namespace: a module can see the private names of
-||| every module above it in the namespace hierarchy. So every Qimaera.Core.* module (the
-||| two monads, the interfaces in Qimaera.Core.QuantumOp and the concrete implementations
-||| in Qimaera.Core.Implementations.*) can use the private definitions below, while code
-||| outside the Qimaera.Core namespace cannot construct, take apart or run a UStateT or
+||| every module above it in the namespace hierarchy. So every Qimaera.Lib.* module (the
+||| two monads, the interfaces in Qimaera.Lib.QuantumOp and the concrete implementations
+||| in Qimaera.Lib.ConcreteImplementations.*) can use the private definitions below, while code
+||| outside the Qimaera.Lib namespace cannot construct, take apart or run a UStateT or
 ||| QStateT computation itself: it can only compose the interfaces' operations.
-module Qimaera.Core
+module Qimaera.Lib
 
 import Data.Nat
 import Data.Vect
@@ -25,13 +25,13 @@ R = L IO {use = Linear}
 
 ||| The UStateT monad is a linear state monad, similar to QStateT but without the IO monad.
 ||| It is used for linear computations that do not involve IO, such as unitary operations on quantum states.
-||| The type is exported; its constructor is private to the Qimaera namespace.
+||| The type is exported; its constructor is private to the Qimaera.Lib namespace.
 export
 data UStateT : (initialType : Type) -> (finalType : Type) -> (returnType : Type) -> Type where
   MkUST : (1 _ : (1 _ : initialType) -> (LPair finalType returnType)) -> UStateT initialType finalType returnType
 
 ||| The QStateT monad: a linear state monad over linear IO (inspired by the indexed state monad in Haskell).
-||| The type is exported; its constructor is private to the Qimaera namespace.
+||| The type is exported; its constructor is private to the Qimaera.Lib namespace.
 export
 data QStateT : (initialType : Type) -> (finalType : Type) -> (returnType : Type) -> Type where
   MkQST : (1 _ : (1 _ : initialType) -> R (LPair finalType returnType)) -> QStateT initialType finalType returnType
@@ -39,8 +39,8 @@ data QStateT : (initialType : Type) -> (finalType : Type) -> (returnType : Type)
 ||| State of the linear-algebraic simulator: amplitudes, the unitary built so far, the qubit
 ||| handles in position order and a counter. It holds qubit handles, so its constructor must
 ||| not reach client code. It is generic in the handle type so that it can be defined here,
-||| above both Qimaera.Core.QuantumOp (where Qubit and its private constructor live) and the
-||| implementations; Qimaera.Core.QuantumOp defines SimulatedOp = SimulatedOpOf Qubit.
+||| above both Qimaera.Lib.QuantumOp (where Qubit and its private constructor live) and the
+||| implementations; Qimaera.Lib.QuantumOp defines SimulatedOp = SimulatedOpOf Qubit.
 export
 data SimulatedOpOf : (qubit : Type) -> Nat -> Type where
   MkSimulatedOp : {n : Nat} -> Matrix (power 2 n) 1 -> Unitary n -> Vect n qubit -> Nat -> SimulatedOpOf qubit n

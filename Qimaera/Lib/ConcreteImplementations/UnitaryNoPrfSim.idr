@@ -1,4 +1,4 @@
-module Qimaera.Core.Implementations.UnitaryNoPrfSim
+module Qimaera.Lib.ConcreteImplementations.UnitaryNoPrfSim
 import Data.Vect
 import Data.Nat
 import Data.Vect.Sort
@@ -7,11 +7,11 @@ import Utilities.Injection
 import Utilities.Lemmas
 import Utilities.UnitaryLinear
 import Utilities.UnitaryNoPrf
-import Qimaera.Core.UStateT
+import Qimaera.Lib.UStateT
 import Utilities.LinearTypes
-import Qimaera.Core.QStateT
-import Qimaera.Core.QuantumOp
-import Qimaera.Core.Implementations.SimulatedOp
+import Qimaera.Lib.QStateT
+import Qimaera.Lib.QuantumOp
+import Qimaera.Lib.ConcreteImplementations.SimulatedOp
 ||| Depricated because Unsafe, but useful sometimes:
 private
 runUnitaryNoPrfSim : {i:Nat} -> (1_: UnitaryNoPrf n) -> (1 _ : UStateT (UnitaryNoPrf n) (UnitaryNoPrf n) (LVect i Qubit) ) -> LPair (UnitaryNoPrf n) (LVect i Qubit)

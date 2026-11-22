@@ -5,16 +5,16 @@ import Data.Vect
 import Utilities.UnitaryLinear
 import Utilities.LinearTypes
 import Control.Linear.LIO
-import Qimaera.Core.QStateT
+import Qimaera.Lib.QStateT
 import Utilities.Injection
 import Utilities.LinearTypes
 import Utilities.Complex
 import System.Random
-import Qimaera.Core.QuantumOp
+import Qimaera.Lib.QuantumOp
 import Utilities.RandomUtilities
 import Utilities.Lemmas
-import Qimaera.Core.UStateT
-import Qimaera.Core.Implementations.BinarySimulatedOp
+import Qimaera.Lib.UStateT
+import Qimaera.Lib.ConcreteImplementations.BinarySimulatedOp
 %search_timeout 1000
 
 %default total

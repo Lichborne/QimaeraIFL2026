@@ -1,4 +1,4 @@
-module Qimaera.Core.Implementations.BinarySimulatedOp
+module Qimaera.Lib.ConcreteImplementations.BinarySimulatedOp
 import Data.Vect
 import Data.Vect.Sort
 import Data.Nat
@@ -10,14 +10,14 @@ import Utilities.Matrix
 import Utilities.Complex
 import System.Random
 import Utilities.Lemmas
-import Qimaera.Core.QStateT
+import Qimaera.Lib.QStateT
 import Control.Linear.LIO
 import Utilities.LinearTypes
 import Utilities.UnitaryLinear
-import Qimaera.Core.UStateT
+import Qimaera.Lib.UStateT
 import Control.Linear.LIO
-import Qimaera.Core.QuantumOp
-import Qimaera.Core.Implementations.SimulatedOp
+import Qimaera.Lib.QuantumOp
+import Qimaera.Lib.ConcreteImplementations.SimulatedOp
 ||| THIS MODULE IS UNDER REDEVELOPMENT (FOR PARSING OF OUTPUTS)
 ||| BE ADVISED!
 

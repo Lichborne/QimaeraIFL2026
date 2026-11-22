@@ -7,9 +7,9 @@ import Utilities.LinearTypes
 import Control.Linear.LIO
 import Utilities.Lemmas
 import Utilities.UnitaryLinear
-import Qimaera.Core.QStateT
-import Qimaera.Core.UStateT
-import Qimaera.Core.Implementations.UnitarySim
+import Qimaera.Lib.QStateT
+import Qimaera.Lib.UStateT
+import Qimaera.Lib.ConcreteImplementations.UnitarySim
 import System.Random
 import Utilities.Injection
 import Algorithms.QFT
@@ -22,11 +22,11 @@ import Algorithms.Graph
 import Examples.Examples
 import Algorithms.RUS
 import Utilities.Matrix
-import Qimaera.Core.Implementations.UnitarySim
+import Qimaera.Lib.ConcreteImplementations.UnitarySim
 import Algorithms.ModularExponentiation
-import Qimaera.Core.Implementations.BinarySimulatedOp
-import Qimaera.Core.Implementations.SimulatedOp
-import Qimaera.Core.QuantumOp
+import Qimaera.Lib.ConcreteImplementations.BinarySimulatedOp
+import Qimaera.Lib.ConcreteImplementations.SimulatedOp
+import Qimaera.Lib.QuantumOp
 import Utilities.UnitaryNoPrf
 --import UnitaryNoPrfSim
 

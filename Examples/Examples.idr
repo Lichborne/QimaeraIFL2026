@@ -6,19 +6,19 @@ import Data.List
 import Utilities.LinearTypes
 import Control.Linear.LIO
 import Utilities.UnitaryLinear
-import Qimaera.Core.QStateT
-import Qimaera.Core.UStateT
+import Qimaera.Lib.QStateT
+import Qimaera.Lib.UStateT
 import System.Random
 import Utilities.Injection
 import Utilities.Complex
-import Qimaera.Core.QuantumOp
-import Qimaera.Core.Implementations.UnitarySim
+import Qimaera.Lib.QuantumOp
+import Qimaera.Lib.ConcreteImplementations.UnitarySim
 import Algorithms.QFT
 import Algorithms.ModularExponentiation
-import Qimaera.Core.Implementations.SimulatedOp
+import Qimaera.Lib.ConcreteImplementations.SimulatedOp
 import Utilities.Lemmas
-import Qimaera.Core.Implementations.UnitarySim
-import Qimaera.Core.Implementations.BinarySimulatedOp
+import Qimaera.Lib.ConcreteImplementations.UnitarySim
+import Qimaera.Lib.ConcreteImplementations.BinarySimulatedOp
 import Utilities.UnitaryNoPrf
 
 

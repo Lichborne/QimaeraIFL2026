@@ -1,4 +1,4 @@
-module Qimaera.Core.Implementations.UnitarySim
+module Qimaera.Lib.ConcreteImplementations.UnitarySim
 import Data.Vect
 import Data.Nat
 import Data.Vect.Sort
@@ -6,10 +6,10 @@ import Decidable.Equality
 import Utilities.Injection
 import Utilities.Lemmas
 import Utilities.UnitaryLinear
-import Qimaera.Core.UStateT
+import Qimaera.Lib.UStateT
 import Utilities.LinearTypes
-import Qimaera.Core.QStateT
-import Qimaera.Core.QuantumOp
+import Qimaera.Lib.QStateT
+import Qimaera.Lib.QuantumOp
 private
 runSplitUnitarySim : {i:Nat} -> {j:Nat} -> (1_: Unitary n) -> (1 _ : UStateT (Unitary n) (Unitary n) (LPair (LVect i Qubit) (LVect j Qubit)))  
                 -> LPair (Unitary n) (LPair (LVect i Qubit) (LVect j Qubit))

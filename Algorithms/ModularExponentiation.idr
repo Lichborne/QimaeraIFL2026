@@ -4,19 +4,19 @@ import Data.Nat
 import Data.Vect
 import Decidable.Equality
 import Utilities.Injection
-import Qimaera.Core.QuantumOp
+import Qimaera.Lib.QuantumOp
 import Utilities.LinearTypes
-import Qimaera.Core.UStateT
-import Qimaera.Core.QStateT
+import Qimaera.Lib.UStateT
+import Qimaera.Lib.QStateT
 import Utilities.UnitaryLinear
 import Algorithms.QFT
 import Utilities.Lemmas
-import Qimaera.Core.Implementations.UnitarySim
-import Qimaera.Core.QuantumOp
+import Qimaera.Lib.ConcreteImplementations.UnitarySim
+import Qimaera.Lib.QuantumOp
 import Utilities.OptimiseUnitary
 import Utilities.NatRules
 import Utilities.UnitaryNoPrf
-import Qimaera.Core.Implementations.UnitaryNoPrfSim
+import Qimaera.Lib.ConcreteImplementations.UnitaryNoPrfSim
 ------------------------Quantum Modular Exponentiation------------------------
 
 ||| This file contains the implementation of QME following Beauregard,

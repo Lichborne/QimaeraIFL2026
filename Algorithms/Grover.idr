@@ -8,10 +8,10 @@ import Utilities.Injection
 import Utilities.LinearTypes
 import Utilities.Lemmas
 import Control.Linear.LIO
-import Qimaera.Core.QStateT
+import Qimaera.Lib.QStateT
 import Algorithms.AlterningBitsOracle
-import Qimaera.Core.QuantumOp
-import Qimaera.Core.UStateT
+import Qimaera.Lib.QuantumOp
+import Qimaera.Lib.UStateT
 --import UnitaryOp
 
 

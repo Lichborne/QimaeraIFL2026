@@ -21,18 +21,18 @@ If wishing to run individual test cases (with IO outputs), the `:exec` Idris2 co
 
 We strongly recommend starting by reading the following paper: https://arxiv.org/abs/2111.10867. It describes some of the main design ideas and explains how some of our libraries and functions should be understood.
 
-However, note that this is an update to the original, with no publicly available paper yet. We recommend reading and executing the code from file `Examples/Examples.idr`. It contains simple examples using the functions defined in `Utilities/UnitaryLinear.idr` and `Qimaera/Core/QuantumOp.idr`.
+However, note that this is an update to the original, with no publicly available paper yet. We recommend reading and executing the code from file `Examples/Examples.idr`. It contains simple examples using the functions defined in `Utilities/UnitaryLinear.idr` and `Qimaera/Lib/QuantumOp.idr`.
 
 ## <a id="layout"></a> Repository Layout
 
 * `Main.idr`: the main file, built by `make`.
-* `Qimaera/Core.idr` and `Qimaera/Core/`: the library core, that is the `UStateT` and `QStateT` monads and the `UnitaryOp`, `QuantumOp` and `RunUnitaryOp` interfaces (in `Qimaera/Core/QuantumOp.idr`).
-* `Qimaera/Core/Implementations/`: the concrete implementations of the interfaces.
+* `Qimaera/Lib.idr` and `Qimaera/Lib/`: the library. `Qimaera/Lib.idr` is its root module: the types of the `UStateT` and `QStateT` monads, the private functions that run them, and the simulator states. `Qimaera/Lib/` holds the monads and the `UnitaryOp`, `QuantumOp` and `RunUnitaryOp` interfaces (in `Qimaera/Lib/QuantumOp.idr`).
+* `Qimaera/Lib/ConcreteImplementations/`: the concrete implementations of the interfaces.
 * `Utilities/`: background modules the library builds on (linear types, lemmas, matrices, complex numbers, the `Unitary` datatypes and so on).
 * `Algorithms/`: quantum algorithms written with the library (QFT, Grover, QAOA, VQE, repeat-until-success, modular exponentiation).
 * `Examples/`: smaller examples, including the detectable-error examples.
 
-Idris scopes private names by namespace: a module can see the private names of the modules above it in the namespace hierarchy. The functions that run `UStateT` and `QStateT` computations are private in `Qimaera/Core.idr`, so the core and the implementations, which all live under `Qimaera.Core`, can run computations, while code outside that namespace can only compose the operations of the interfaces.
+Idris scopes private names by namespace: a module can see the private names of the modules above it in the namespace hierarchy. The functions that run `UStateT` and `QStateT` computations are private in `Qimaera/Lib.idr`, so the interfaces and the implementations, which all live under `Qimaera.Lib`, can run computations, while code outside that namespace can only compose the operations of the interfaces. The simulator states are defined there too, with private constructors, so that both `Qimaera/Lib/QuantumOp.idr` and the simulators can open them but client code cannot. The qubit constructor `MkQubit` is private in `Qimaera/Lib/QuantumOp.idr`, so none of the implementations in `Qimaera/Lib/ConcreteImplementations/`, including the simulators' `UnitaryOp` code, can see it.
 
 ## <a id="overview"></a> Library Overview
 
@@ -74,16 +74,16 @@ This file also provides some function to compute the number of gates and the dep
 
 
 
-### **`Qimaera/Core/QStateT.idr`**
+### **`Qimaera/Lib/QStateT.idr`**
 
-Quantum state transformer for effectful quantum computation (used in the file `Qimaera/Core/QuantumOp.idr`).
+Quantum state transformer for effectful quantum computation (used in the file `Qimaera/Lib/QuantumOp.idr`).
 
 The type `QStateT initialType finalType returnType` means we are performing a quantum operation from an initial state with type initialType, to a final state with type finalType, and we return a user-accessible value of type returnType.
 
 This was inspired by the indexed state monad in Haskell and we adapted it to also handle linearity, probabilistic effects and IO effects. 
 
 
-### **`Qimaera/Core/QuantumOp.idr`**
+### **`Qimaera/Lib/QuantumOp.idr`**
 
 Defines the `Qubit` type, the `QuantumOp` and `UnitaryOp` interfaces for quantum operations and building unitaries and provides part of an implementation with linear algebraic simulation for both. This file is long due to access control requirements on Qubits.
 
@@ -101,13 +101,13 @@ The UnitaryOp interface uses information about available qubits provided to it b
 
 Further, the `UnitaryRun` interface, which can be used to obtain an instance of the Unitary datatype out of UnitaryOp by simply supplying Qubits to it is also found in this file. Its use is straighforward based on QuantumOp and accompanying examples.
 
-We also provide a concrete implementation of these interfaces. In this file, SimulatedOp provides linear-algebraic simulation of all the required quantum operations for QuantumOp. SimulatedOp's implementation of UnitaryOp is found in `Qimaera/Core/Implementations/SimulatedOp.idr`
+We also provide a concrete implementation of these interfaces. In this file, SimulatedOp provides linear-algebraic simulation of all the required quantum operations for QuantumOp. SimulatedOp's implementation of UnitaryOp is found in `Qimaera/Lib/ConcreteImplementations/SimulatedOp.idr`
 
-### **`Qimaera/Core/Implementations/SimulatedOp.idr`**
+### **`Qimaera/Lib/ConcreteImplementations/SimulatedOp.idr`**
 
 Implements UnitaryOp using SimulatedOp. Unitary is used to collect the unitary bits, but linear algebra would work too (although it is very slow) for. both states and unitaries. Note that the counter has, in the new implementation, become vacuous, and therefore can be repurposed or removed.
 
-### **`Qimaera/Core/Implementations/BinarySimulatedOp.idr`**
+### **`Qimaera/Lib/ConcreteImplementations/BinarySimulatedOp.idr`**
 
 Implements UnitaryOp using BinarySimulatedOp, i.e. binary simulation of the quantum state. When an algorithm is run using this, the circuit, in cluding measurements, created is exported to a file with a name of the user's choosing. The implementation is split into (numbered) functions automatically, as well, for future visualization purposes. File outputs require Matplotlib package to run (last line of code, can be removed).
 
@@ -183,19 +183,19 @@ A quantum state transformer which realises a fair coin toss in the obvious way:
 
 A simple function for basic optimisation of quantum circuits. The main purpose here is to show how unitary circuits in Qimaera can be manipulated to be optimised with respect to some criterion.
 
-### **`Qimaera/Core/Implementations/UnitarySim.idr`**
+### **`Qimaera/Lib/ConcreteImplementations/UnitarySim.idr`**
 
 An implementation of UnitaryOp using the linear Unitary datatype.
 
 ### **`Utilities/UnitaryNoPrf.idr`**
 
-Unitary datatype without the proofs required for correctness. Useful for development, and for seeing that the abstract strucute enforces correctness without the explicit proofs. This can be seen via the implementation in Qimaera/Core/Implementations/UnitaryNoPrfSim.idr
+Unitary datatype without the proofs required for correctness. Useful for development, and for seeing that the abstract strucute enforces correctness without the explicit proofs. This can be seen via the implementation in Qimaera/Lib/ConcreteImplementations/UnitaryNoPrfSim.idr
 
-### **`Qimaera/Core/Implementations/UnitaryNoPrfSim.idr`**
+### **`Qimaera/Lib/ConcreteImplementations/UnitaryNoPrfSim.idr`**
 
 Implements UnitaryOp using UnitaryNoPrf. 
 
-### **`Qimaera/Core/UStateT.idr`**
+### **`Qimaera/Lib/UStateT.idr`**
 
 Unitary state transformer for effectful quantum computation. Similar to QStateT, except IO is not linear.
 
@@ -213,9 +213,9 @@ Some rules for natural numbers that Idris does not see from Data.Nat for one rea
 
 ### **`Utilities/QuditMatrix.idr`**
 
-Base (in)dependent Unitary matrix library. Can be used for generalizing concrete circuits to qudits.
+Base (in)dependent Unitary matrix library. Can be used for generalizing concrete circuits to qudits. Qudit wires are numbered as qubit wires are: wire 0 is the most significant digit of a basis index (the first tensor factor), so with base 2 the qudit matrices are the qubit ones.
 
-### **`Qimaera/Core/Implementations/QuditMatrixSim.idr`**
+### **`Qimaera/Lib/ConcreteImplementations/QuditMatrixSim.idr`**
 
 UnitaryOp implementations dependent on the chosen "base" for qudit matrices. For a given choice of quantum data, a particular concrete implementation involves simply concretizing "base" in the functions provided
 

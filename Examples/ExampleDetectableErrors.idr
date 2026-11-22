@@ -6,14 +6,14 @@ import Data.List
 import Utilities.LinearTypes
 import Control.Linear.LIO
 import Utilities.UnitaryLinear
-import Qimaera.Core.QStateT
+import Qimaera.Lib.QStateT
 import System.Random
 import Utilities.Injection
 import Utilities.Complex
-import Qimaera.Core.QuantumOp
-import Qimaera.Core.Implementations.SimulatedOp
+import Qimaera.Lib.QuantumOp
+import Qimaera.Lib.ConcreteImplementations.SimulatedOp
 import Examples.Examples
-import Qimaera.Core.UStateT
+import Qimaera.Lib.UStateT
 import Algorithms.QFT
 
 

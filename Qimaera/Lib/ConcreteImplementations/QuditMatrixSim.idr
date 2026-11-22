@@ -1,12 +1,12 @@
-module Qimaera.Core.Implementations.QuditMatrixSim
+module Qimaera.Lib.ConcreteImplementations.QuditMatrixSim
 import Utilities.Matrix
 import Data.Vect
 import Data.Nat
 import Utilities.Complex
 import Utilities.Lemmas
-import Qimaera.Core.QuantumOp
+import Qimaera.Lib.QuantumOp
 import Utilities.UnitaryLinear
-import Qimaera.Core.UStateT
+import Qimaera.Lib.UStateT
 import Utilities.LinearTypes
 import Decidable.Equality
 import Utilities.QuditMatrix
@@ -171,12 +171,18 @@ multiControlledQUM :
 multiControlledQUM {n} {i} {k} base controls val targets ui =
   buildMatrixNatQudit (power base n) (power base n) entry
   where
+    -- digit positions of the wires (see wirePosition)
+    cpos : Vect k Nat
+    cpos = map (wirePosition n) controls
+    tpos : Vect i Nat
+    tpos = map (wirePosition n) targets
+
     entry : Nat -> Nat -> Complex Double
     entry r c =
-      if controlsMatch base controls val c then
-        if sameOnOtherQuditsBase {n} {i} base targets r c then
-          let rr = extractSubIndexNewBase {n} {i} base targets r
-              cc = extractSubIndexNewBase {n} {i} base targets c
+      if controlsMatch base cpos val c then
+        if sameOnOtherQuditsBase {n} {i} base tpos r c then
+          let rr = extractSubIndexNewBase {n} {i} base tpos r
+              cc = extractSubIndexNewBase {n} {i} base tpos c
           in matIndexNatDefQudit 0 rr cc ui
         else 0
       else

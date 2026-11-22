@@ -1,4 +1,4 @@
-module Qimaera.Core.QuantumOp
+module Qimaera.Lib.QuantumOp
 import Data.Vect
 import Data.Vect.Sort
 import Data.Vect.Elem
@@ -11,12 +11,12 @@ import Utilities.QuditMatrix
 import Utilities.Complex
 import System.Random
 import Utilities.Lemmas
-import Qimaera.Core.QStateT
+import Qimaera.Lib.QStateT
 import Control.Linear.LIO
 import Utilities.LinearTypes
 import Utilities.UnitaryLinear
-import public Qimaera.Core   -- the state types SimulatedOpOf/BinarySimulatedOpOf (and the monad types) for importers
-import Qimaera.Core.UStateT
+import public Qimaera.Lib   -- the state types SimulatedOpOf/BinarySimulatedOpOf (and the monad types) for importers
+import Qimaera.Lib.UStateT
 import Control.Linear.LIO
 import Utilities.UnitaryNoPrf
 
@@ -660,7 +660,7 @@ mkQubitList Z (S k) = (MkQubit Z :: mkQubitList (S Z) k)
 mkQubitList (S n) (S k) = (MkQubit (S n) :: mkQubitList (S (S n)) k)  
 
 ----- IMPLEMENTATION OF QUANTUMSTATE: LINEAR-ALGEBRAIC SIMULATION -----------
-||| State of the linear-algebraic simulator (defined, with its constructor private, in Qimaera.Core).
+||| State of the linear-algebraic simulator (defined, with its constructor private, in Qimaera.Lib).
 public export
 SimulatedOp : Nat -> Type
 SimulatedOp = SimulatedOpOf Qubit

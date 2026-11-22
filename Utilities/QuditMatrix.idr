@@ -66,6 +66,14 @@ digitAt (S b) x p =
       di    : Integer = (xi `div` denom) `mod` (cast (S b))
   in if di == 0 then 0 else cast di
 
+||| Qudit wires are numbered as qubit wires are (Utilities.Matrix, UnitaryMatrix): wire 0 is the
+||| most significant digit of a basis index, i.e. the first tensor factor. Digit positions count
+||| from the least significant digit (digitAt), so wire w of an n-qudit register is position n-1-w.
+||| The functions below that take wires convert them with this; those that take positions say so.
+public export
+wirePosition : (n : Nat) -> (wire : Nat) -> Nat
+wirePosition n w = minus n (S w)
+
 ||| Convention: perm[i] = old position that becomes output position i.
 permuteIndexBase : {n : Nat} -> (base : Nat) -> (perm : Vect n Nat) -> (x : Nat) -> Nat
 permuteIndexBase {n} base perm x = go 0 perm where
@@ -258,13 +266,16 @@ tensorSUM {n} base control target =
   case decEq control target of
     Yes _ => matrixId (power base n)
     No _ =>
-      let perm : Vect n Nat = permBringToFront {n} control target
+      -- move the control's digit to the most significant position and the target's next,
+      -- where sum01OnN acts (permMatrixBase takes positions, listed from the least significant)
+      let perm : Vect n Nat = reverse (permBringToFront {n} (wirePosition n control) (wirePosition n target))
           p    : Matrix (power base n) (power base n) = permMatrixBase {n} base perm
           g01  : Matrix (power base n) (power base n) = sum01OnN {n} base
       in matrixMult (adjoint p) (matrixMult g01 p)
 
 ----------------------- multi-controlled-sum ------------------------
 
+||| Do the digits at these positions (not wires) all equal val?
 export
 controlsMatch : (base : Nat) -> (controls : Vect k Nat) -> (val : Nat) -> (x : Nat) -> Bool
 controlsMatch _ [] _ _ = True
@@ -292,7 +303,10 @@ multiControlledSUM : {n : Nat} ->
                      (control : Nat) ->
                      (target : Nat) ->
                      Matrix (power base n) (power base n)
-multiControlledSUM {n} base controls val control target =
+multiControlledSUM {n} base controlWires val controlWire targetWire =
+  let controls = map (wirePosition n) controlWires
+      control = wirePosition n controlWire
+      target = wirePosition n targetWire in
   V.Fin.tabulate $ \rFin =>
     V.Fin.tabulate $ \cFin =>
       let r = finToNat rFin
@@ -328,7 +342,9 @@ multiControlled1Q : {n : Nat} ->
                     (target : Nat) ->
                     Matrix base base ->
                     Matrix (power base n) (power base n)
-multiControlled1Q {n} base controls val target u =
+multiControlled1Q {n} base controlWires val targetWire u =
+  let controls = map (wirePosition n) controlWires
+      target = wirePosition n targetWire in
   V.Fin.tabulate $ \rFin =>
     V.Fin.tabulate $ \cFin =>
       let r : Nat = finToNat rFin
@@ -428,6 +444,7 @@ elemNatVectQudit x (y :: ys) =
     No  _ => elemNatVectQudit x ys
 
 -------- Extract i-digit sub-index from an n-qudit basis index, using perm order ----------
+-------- (perm lists digit positions, not wires: see wirePosition) --------------------------
 
 public export
 extractSubIndexNewBase : {n : Nat} -> {i : Nat} ->
@@ -458,7 +475,7 @@ sameOnOtherQuditsBase {n} {i} base perm r c = go 0 n where
          else False
 
 |||apply a small i-qudit unitary onto an n-qudit register
-||| on the wires listed in `perm` (same idea as Matrix.applyUM for qubits).
+||| on the wires listed in `perm` (same idea as Matrix.applyUM for qubits, and the same wire order).
 public export
 applyUMBase : {n : Nat} -> {i : Nat} ->
               (base : Nat) ->
@@ -468,11 +485,14 @@ applyUMBase : {n : Nat} -> {i : Nat} ->
 applyUMBase {n} {i} base perm ui =
   buildMatrixNatQudit (power base n) (power base n) entry where
 
+    pos : Vect i Nat
+    pos = map (wirePosition n) perm
+
     entry : Nat -> Nat -> Complex Double
     entry r c =
-      if sameOnOtherQuditsBase {n} base perm r c then
-        let rr = extractSubIndexNewBase {n} base perm r
-            cc = extractSubIndexNewBase {n} base perm c
+      if sameOnOtherQuditsBase {n} base pos r c then
+        let rr = extractSubIndexNewBase {n} base pos r
+            cc = extractSubIndexNewBase {n} base pos c
         in  matIndexNatDefQudit 0 rr cc ui
       else 0
 
