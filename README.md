@@ -95,7 +95,7 @@ The QuantumOp interface is an abstraction used to represent quantum operations. 
  * `applyUST`: Lift a UStateT up from UnitaryOp and apply it according to the qubits passed down to it in QuantumOp
  * `applyUnitaryDirectly` : Apply a unitary circuit to a selection of qubits. The parameters are the linear vector of qubit identifiers for the set of qubits and the unitary operator.
  * `measure`      : Measure a set of qubits.
- * `runQ`          : Execute a sequence of quantum operations.
+ * `run`          : Execute a sequence of quantum operations.
 
 The UnitaryOp interface uses information about available qubits provided to it by QuantumOp (or UnitaryRun, see below) to construct unitaries correctly but avoiding proof obligations. It can be used abstractly or utilizing the Unitary datatype (see Algorithms/QFT.idr for examples, for instance). Its functions are described in detail in the file.
 

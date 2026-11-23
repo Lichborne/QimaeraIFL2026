@@ -121,7 +121,7 @@ brokenOp1  = do
       pure ([b1,b2,b3,b4])
       
 brokenOp1Run : IO (Vect 4 Bool)
-brokenOp1Run = runQ (do
+brokenOp1Run = run (do
             bs <- brokenOp1 {t = SimulatedOp}
             pure bs)
        
@@ -132,7 +132,7 @@ brokenOp1Run = runQ (do
 
 brokenOp2 : IO (Vect 5 Bool)
 brokenOp2 = 
-  runQ (do
+  run (do
       [q1,q2,q3,q4,q5] <- newQubits {t = SimulatedOp} 5
       [b3] <- measure [q3]
       [q4,q1,q2] <- applyUST (ux [q4,q1,q4]) 
@@ -149,7 +149,7 @@ brokenOp2 =
 
 brokenOp3 : IO (Vect 4 Bool)
 brokenOp3  = 
-  runQ (do
+  run (do
       [q1,q2,q3,q4] <- newQubits {t = SimulatedOp} 4
       [b3] <- measure [q3]
       [r4,r2,r1] <- applyUST (ux [q4,q2,q1]) 
@@ -163,7 +163,7 @@ brokenOp3  =
 
 brokenOp4 : IO (Vect 5 Bool)
 brokenOp4 = 
-  runQ (do
+  run (do
       [q1,q2,q3,q4,q5] <- newQubits {t = SimulatedOp} 5
       [b3] <- measure [q3]
       [q4,q1,q2,q5] <- applyUST (ux [q4,q1,q2,q5]) 
@@ -178,7 +178,7 @@ brokenOp4 =
 
 brokenOp5 : IO (Vect 5 Bool)
 brokenOp5 = 
-  runQ (do
+  run (do
       [q1,q2,q3,q4,q5] <- newQubits {t = SimulatedOp} 5
       [b3] <- measure [q3]
       [q4,q1,q4] <- applyUST (ux [q4,q1,q2]) 

@@ -42,7 +42,7 @@ example_u' = H 0 $ T 0 $ CNOT 0 1 $ H 0 $ CNOT 0 1 $ T 0 $ H 0 IdGate
 export
 runRUS : UnitaryOp t => QuantumOp t => IO Bool
 runRUS = do
-  [b] <- runQ (do
+  [b] <- run (do
               q <- newQubit {t = t}
               q <- RUS q example_u' TGate
               measure [q]
@@ -102,7 +102,7 @@ example_u' = H 0 $ T 0 $ CNOT 0 1 $ H 0 $ CNOT 0 1 $ T 0 $ H 0 IdGate
 export
 runRUSAbs : QuantumOp t => UnitaryOp t => IO Bool
 runRUSAbs = do
-  [b] <- runQ (do
+  [b] <- run (do
               q <- newQubit {t = t}
               q <- RUSAbs q (example_uAbs) tAdjAbs
               measure q

@@ -262,7 +262,7 @@ quantum_operation4 = do
       pure [b1,b2,b3]                                   --return the results
   
 runQuantumOp4 : UnitaryOp t => QuantumOp t => IO (Vect 3 Bool)  
-runQuantumOp4 = runQ {t=t} (do
+runQuantumOp4 = run {t=t} (do
           bs <- quantum_operation4 {t = t}
           pure bs)
 
@@ -347,7 +347,7 @@ qftControlTest = runUnitaryOp (do
 ||| test with BinarySimulatedOp
 export
 adderTestQ : IO (Vect 7 Bool)
-adderTestQ = runQ {t = BinarySimulatedOp} (do
+adderTestQ = run {t = BinarySimulatedOp} (do
                a <- newQubits 3
                b <- newQubits 4 
                outapp <- applyUST (inPlaceQFTAdder {i = 3} (a++b))

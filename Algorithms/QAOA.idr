@@ -181,7 +181,7 @@ QAOA' 0 p graph = pure []
 QAOA' (S k) p graph = do
   previous_info <- QAOA' {t=t}  k p graph 
   (betas, gammas) <- classicalOptimisation graph previous_info
-  cut <- runQ (do
+  cut <- run (do
               qs <- newQubits {t = t} n
               us <- applyUST (QAOA_UnitaryOp {t = t} betas gammas graph qs)
               measureAll us

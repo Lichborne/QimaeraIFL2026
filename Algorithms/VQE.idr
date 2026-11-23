@@ -204,7 +204,7 @@ computeEnergyPauli : UnitaryOp t => QuantumOp t => (n : Nat) -> (p : PauliBasis 
 computeEnergyPauli n p 0 circuit = pure 0
 computeEnergyPauli n p (S nSamples) circuit = do
   --let encodingCircuit = encodingUnitary p
-  (b :: _) <- runQ (do
+  (b :: _) <- run (do
                qs <- newQubits {t} (S n)
                qs <- applyUST (applyUnitary qs (tensor (IdGate {n=1}) circuit))
                qs <- applyUST ((encodingUnitaryOp p qs))
@@ -338,7 +338,7 @@ computeEnergyPauliOg : QuantumOp t => (n : Nat) -> (p : PauliBasis n) -> (nSampl
 computeEnergyPauliOg n p 0 circuit = pure 0
 computeEnergyPauliOg n p (S nSamples) circuit = do
   let encodingCircuit = encodingUnitary p
-  (b :: _) <- runQ (do
+  (b :: _) <- run (do
                qs <- newQubits {t} (S n)
                qs <- applyUnitaryDirectly ( (IdGate {n=1}) # circuit) qs
                qs <- applyUnitaryDirectly encodingCircuit qs

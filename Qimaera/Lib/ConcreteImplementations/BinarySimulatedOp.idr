@@ -429,5 +429,5 @@ QuantumOp BinarySimulatedOp where
   applyUnitaryDirectly = applyUDirectlyCircSimulated
   measure      = measureQubitsSimulatedCirc
   measureAll = measureAllSimulatedCirc
-  runQ       = runSimulatedCircVis
+  run       = runSimulatedCircVis
 

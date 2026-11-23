@@ -15,7 +15,7 @@ import Utilities.Lemmas
 export
 coin : UnitaryOp t => QuantumOp t => IO Bool
 coin = do
-  [b] <- runQ {t = t} (do
+  [b] <- run {t = t} (do
            q <- newQubit
            q <- applyUST (applyH q)
            r <- measure q

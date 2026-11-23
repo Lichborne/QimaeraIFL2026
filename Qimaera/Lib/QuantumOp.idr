@@ -327,7 +327,7 @@ interface QuantumOp (0 t : Nat -> Type) where
                           
   ||| Execute a quantum operation : start and finish with trivial quantum state
   ||| (0 qubits) and measure 'n' qubits in the process
-  runQ : {n:Nat} -> QStateT (t 0) (t 0) (Vect n Bool) -> IO (Vect n Bool)
+  run : {n:Nat} -> QStateT (t 0) (t 0) (Vect n Bool) -> IO (Vect n Bool)
 
 ----- Qubit utilities, functions, and proofs----
 private
@@ -863,7 +863,7 @@ QuantumOp SimulatedOp where
   applyUST = applyUnitarySimulated
   applyUnitaryDirectly = applyUDirectlySimulated
   measure      = measureSimulated
-  runQ          = runSimulated
+  run          = runSimulated
 
 
 --------------------------- BinarySimulatedOp with functions that only QuantumOp has access to-------------------

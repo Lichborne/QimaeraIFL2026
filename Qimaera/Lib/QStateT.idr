@@ -20,6 +20,6 @@ public export
 v >>= f = MkQST $ \i => runQStateT i v >>= \(a # m) => runQStateT a (f m)
 
 ||| mod (linear)
-public export
+private
 modify : ((1 _ : i) -> o) -> QStateT i o ()
 modify f = MkQST $ \i => pure1 (f i # ())

@@ -202,7 +202,7 @@ qftQAdj i n qs = applyUST {t=t} (qftAdj {t=t} {i = i} {n = n} (qs))
 
 ||| Run with 3 qubits with SimulatedOp(any more takes too long on a normal computer)
 runQFT3 : UnitaryOp t => QuantumOp t => IO (Vect 3 Bool)
-runQFT3 = runQ {t=t} (do
+runQFT3 = run {t=t} (do
     [q1,q2,q3] <- newQubits 3
     qfts <- applyUST (qft ([q3,q2,q1]))
     measureAll qfts)
@@ -244,7 +244,7 @@ qftUnitaryShuffle  = runUnitaryOp (do
 ||| run unitary simple for 3 qubits via quantumop
 export    
 runQFT3U : QuantumOp t => IO (Vect 3 Bool)
-runQFT3U = runQ {t=t} (do
+runQFT3U = run {t=t} (do
     [q1,q2,q3] <- newQubits 3
     qfts <- applyUnitaryDirectly (qftInUnitary) [q3,q2,q1]
     measureAll qfts)
@@ -262,7 +262,7 @@ qftQOp n = do
 public export 
 ||| Test with 3 qubits with SimulatedOp    
 testQFT3 : IO (Vect 3 Bool)
-testQFT3 = runQ {t = SimulatedOp} (qftQOp 3)
+testQFT3 = run {t = SimulatedOp} (qftQOp 3)
 
 
 ||| build the qudit matrix based on Unitary for any base.
