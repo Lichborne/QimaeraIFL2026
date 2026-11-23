@@ -115,7 +115,7 @@ modularTestIo = let
   (uni) = modularTest
   in
     do
-      () <- putStrLn "Testing modular exponentiation for a small input. Output in modularTest.py"
+      () <- putStrLn "Testing modular exponentiation for a largeinput. Output in modularTest.py"
       d <- draw uni
       eo <- exportToQiskit "modularTest.py" uni
       pure uni
