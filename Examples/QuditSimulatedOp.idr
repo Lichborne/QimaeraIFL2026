@@ -19,7 +19,7 @@
 ||| transform, because its controlled rotations are the qubit ones.
 
 --module Qimaera.Lib.ConcreteImplementations.QuditSimulatedOp
-module Qimaera.Examples.QuditSimulatedOp
+module Examples.QuditSimulatedOp
 
 import Data.Vect
 import Data.Nat
