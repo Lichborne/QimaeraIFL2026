@@ -207,7 +207,7 @@ computeEnergyPauli n p (S nSamples) circuit = do
   (b :: _) <- run (do
                qs <- newQubits {t} (S n)
                qs <- applyUST (applyUnitary qs (tensor (IdGate {n=1}) circuit))
-               qs <- applyUST ((encodingUnitaryOp p qs))
+               qs <- applyUST ((encodingUnitaryOp (reverse p) qs)) -- the encoding takes the list's head to the last wire
                measureAll qs
                )
   rest <- computeEnergyPauli {t} n p nSamples circuit
@@ -337,7 +337,7 @@ VQE n h nSamples k depth = do
 computeEnergyPauliOg : QuantumOp t => (n : Nat) -> (p : PauliBasis n) -> (nSamples : Nat) -> (circuit : Unitary n) -> IO Double
 computeEnergyPauliOg n p 0 circuit = pure 0
 computeEnergyPauliOg n p (S nSamples) circuit = do
-  let encodingCircuit = encodingUnitary p
+  let encodingCircuit = encodingUnitary (reverse p) -- the encoding takes the list's head to the last wire
   (b :: _) <- run (do
                qs <- newQubits {t} (S n)
                qs <- applyUnitaryDirectly ( (IdGate {n=1}) # circuit) qs
