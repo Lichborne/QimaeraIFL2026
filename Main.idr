@@ -124,15 +124,11 @@ modularTestIo = let
 export
 absControlTestIo : IO ((Unitary 5))
 absControlTestIo = let
-  --(uniNoPrf) = absControlTestNoPrf
   (uni) = absControlTest
   in
     do
-      --() <- putStrLn "Testing triply abstract-controlled CNot on last 2 indeces with UnitaryNoPrf. Output in absControlTest.py"
-      --d1 <- draw uniNoPrf
-      () <- putStrLn "Testing triply abstract-controlled CNot on last 2 indeces with Unitary. Output in absControlTestNoPrf.py"
+      () <- putStrLn "Testing triply abstract-controlled CNot on last 2 indeces with Unitary. Output in absControlTest.py"
       d2 <- draw uni
-      --eo <- exportToQiskit "absControlTest.py" uniNoPrf
       eo <- exportToQiskit "absControlTest.py" uni
       cccn <- draw cccnot 
       eo <- exportToQiskit "absControlRef.py" cccnot
@@ -151,7 +147,7 @@ main = do
   testCoins
 
   -- Repeat until success
-  putStrLn "\nTest 'Repeat Until Success'. Probability to measure '1' is 2/3 for this example."
+  putStrLn "\nTest 'Repeat Until Success'. Probability to measure '1' is 2/3 for this example assuming real simulation (not BinarySimulatedOp)."
   putStrLn "\nYou will have to provide a name for each output file, as these are three separate runs, each until success."
   b <- testMultipleRUS 3
 

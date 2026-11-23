@@ -142,7 +142,7 @@ brokenOp2 =
 
 -- " There are 2 uses of linear name q4." This is an example which gives the error with the right issue, but because of a lot of things shadowing one another
 -- in the interfaces, instead of seeing that q4 is used twice, it appears to be used 0 times. 
--- Error : While processing right hand side of brokenOp2. There are 0 uses of linear name q4. 
+-- Error : While processing right hand side of brokenOp2. There are 2 uses of linear name q4. 
 
 
 -- In this example, we try to reuse a pointer to an old state of a qubit (the state of the qubit has been modified)
