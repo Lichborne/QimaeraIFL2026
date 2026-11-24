@@ -619,12 +619,13 @@ reCalculateCounter : {n:Nat} -> (v: Vect n Qubit) -> Nat
 reCalculateCounter [] = 0
 reCalculateCounter {n = S k} (x::xs) = smallestMissing (sort (toVectN (x::xs)))
 
-||| add the indices of the new qubits to the vector in the SimulatedOp
+||| add the indices of the new qubits to the vector in the SimulatedOp: counter, counter + 1, ...
+||| The returned counter is the next unused identifier, so identifiers are never reused.
 private
 newQubitsPointers : {n:Nat} -> (p : Nat) -> (counter : Nat) -> (v: Vect n Qubit) -> LFstPair (LVect p Qubit) (Pair (Vect p Qubit) Nat)
 newQubitsPointers 0 counter _ = ([] # ([], counter))
-newQubitsPointers {n} (S p) counter xs = let newcounter = (reCalculateCounter (MkQubit counter :: xs)) in
-  let (q # (v, newcounter)) = newQubitsPointers p newcounter (MkQubit counter :: xs)
+newQubitsPointers {n} (S p) counter xs =
+  let (q # (v, newcounter)) = newQubitsPointers p (S counter) (MkQubit counter :: xs)
   in (MkQubit counter :: q) #  ((MkQubit counter :: v), newcounter)
 
 private
@@ -781,7 +782,7 @@ measure' {n} i (MkSimulatedOp v un w counter) = do
        let proj = multScalarMatrix (inv (sqrt norm21) :+ 0) projection1
        pure1 (MkSimulatedOp (projectState {n} proj i True) IdGate newQubits counter # True)
 
-||| Helper, so that we only have to recalculate the counter once
+||| Helper for measureQubits'
 private
 measureQubits'' : {n : Nat} -> {i : Nat} ->
                  (1 _ : LVect i Qubit) ->
@@ -810,8 +811,8 @@ measureQubits' (x :: xs) qs =
       (s # b)<- measure' y qs'
       (MkSimulatedOp stfin unfin vfin counter # bs) <- measureQubits'' xs s
       case bs of 
-          [] => pure1 (MkSimulatedOp stfin unfin vfin (reCalculateCounter vfin) # [b])
-          (b' :: bs') => pure1 (MkSimulatedOp stfin unfin vfin (reCalculateCounter vfin) # (b :: b' :: bs'))
+          [] => pure1 (MkSimulatedOp stfin unfin vfin counter # [b])
+          (b' :: bs') => pure1 (MkSimulatedOp stfin unfin vfin counter # (b :: b' :: bs'))
 
 ------- SIMULATE CIRCUITS : OPERATIONS ON QUANTUM STATES ------
 
