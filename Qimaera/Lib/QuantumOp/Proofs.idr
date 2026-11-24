@@ -29,7 +29,7 @@ lids [] = []
 lids (q :: qs) = qid q :: lids qs
 
 ||| The handle utilities give back the handles they are given, with their ids.
-private
+public export
 qubitToNatPairIs : (q : Qubit) -> qubitToNatPair q = (q # qid q)
 qubitToNatPairIs (MkQubit k) = Refl
 

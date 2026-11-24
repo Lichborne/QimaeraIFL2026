@@ -1,4 +1,4 @@
-module Qimaera.Lib.SimulatedOp.Proofs
+module Qimaera.Lib.ConcreteImplementations.SimulatedOp.Proofs
 
 import Data.Vect
 import Data.Vect.Elem
@@ -7,7 +7,10 @@ import Utilities.Injection
 import Utilities.LinearTypes
 import Utilities.UnitaryLinear
 import Utilities.Matrix
+import Utilities.Complex
+import Utilities.Lemmas
 import Qimaera.Lib
+import Qimaera.Lib.UStateT
 import Qimaera.Lib.UStateT.Proofs
 import Qimaera.Lib.QuantumOp
 import Qimaera.Lib.QuantumOp.Proofs
@@ -120,3 +123,43 @@ controlUSTRuns : {n, i : Nat} -> (q : Qubit) -> (locs : LVect i Qubit)
 controlUSTRuns q locs pat st un v c with (buildUnitary' {n = i} pat)
   _ | (MkSimulatedOp _ u' _ _) with (applySafe (controlled u') un (positions v (lids (q :: locs)))) proof eq
     _ | (unew # io) = rewrite qubitToNatPairIs q in rewrite distributeIs locs in rewrite eq in Refl
+
+
+export
+multipleControlUSTRuns : {n, i, j : Nat} -> (cs : LVect i Qubit) -> (locs : LVect j Qubit)
+                      -> (pat : (1 _ : LVect j Qubit) -> UStateT (SimulatedOp j) (SimulatedOp j) (LVect j Qubit))
+                      -> (st : Matrix (power 2 n) 1) -> (un : Unitary n) -> (v : Vect n Qubit) -> (c : Nat)
+                      -> runUStateT (MkSimulatedOp st un v c) (multipleControlUST {t = SimulatedOp} cs locs pat)
+                         = (MkSimulatedOp st (fstLFP (applySafe (multipleControlled i
+                                                                   (unitaryOf (buildUnitary {t = SimulatedOp} pat)))
+                                                                un (positions v (lids cs ++ lids locs))))
+                                          v c # (cs ++ locs))
+multipleControlUSTRuns cs locs pat st un v c with (buildUnitary' {n = j} pat)
+  _ | (MkSimulatedOp _ u' _ _)
+    with (applySafe (multipleControlled i u') un (positions v (lids cs ++ lids locs))) proof eq
+    _ | (unew # io) = rewrite distributeIs cs in rewrite distributeIs locs in rewrite eq in Refl
+
+export
+applyHRuns : {n : Nat} -> (q : Qubit)
+          -> (st : Matrix (power 2 n) 1) -> (un : Unitary n) -> (v : Vect n Qubit) -> (c : Nat)
+          -> runUStateT (MkSimulatedOp st un v c) (applyH {t = SimulatedOp} q)
+             = (MkSimulatedOp st (fstLFP (applySafe HGate un (positions v (lids [q])))) v c # [q])
+applyHRuns q st un v c with (applySafe HGate un (positions v (lids [q]))) proof eq
+  _ | (unew # io) = rewrite distributeIs [q] in rewrite eq in Refl
+
+export
+applyPRuns : {n : Nat} -> (p : Double) -> (q : Qubit)
+          -> (st : Matrix (power 2 n) 1) -> (un : Unitary n) -> (v : Vect n Qubit) -> (c : Nat)
+          -> runUStateT (MkSimulatedOp st un v c) (applyP {t = SimulatedOp} p q)
+             = (MkSimulatedOp st (fstLFP (applySafe (PGate p) un (positions v (lids [q])))) v c # [q])
+applyPRuns p q st un v c with (applySafe (PGate p) un (positions v (lids [q]))) proof eq
+  _ | (unew # io) = rewrite distributeIs [q] in rewrite eq in Refl
+
+export
+applyCNOTRuns : {n : Nat} -> (q1, q2 : Qubit)
+             -> (st : Matrix (power 2 n) 1) -> (un : Unitary n) -> (v : Vect n Qubit) -> (c : Nat)
+             -> runUStateT (MkSimulatedOp st un v c) (applyCNOT {t = SimulatedOp} q1 q2)
+                = (MkSimulatedOp st (fstLFP (applySafe CNOTGate un (positions v (lids [q1, q2])))) v c # [q1, q2])
+applyCNOTRuns q1 q2 st un v c with (applySafe CNOTGate un (positions v (lids [q1, q2]))) proof eq
+  _ | (unew # io) = rewrite distributeIs [q1, q2] in rewrite eq in Refl
+
