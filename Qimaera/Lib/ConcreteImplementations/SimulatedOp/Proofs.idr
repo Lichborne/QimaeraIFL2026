@@ -163,3 +163,78 @@ applyCNOTRuns : {n : Nat} -> (q1, q2 : Qubit)
 applyCNOTRuns q1 q2 st un v c with (applySafe CNOTGate un (positions v (lids [q1, q2]))) proof eq
   _ | (unew # io) = rewrite distributeIs [q1, q2] in rewrite eq in Refl
 
+||| So these keep the live handles too, and so do the operations that combine computations.
+export
+applyUnitaryOwnKeeps : {n, i : Nat} -> (lv : LVect i Qubit) -> (own : SimulatedOp i)
+                    -> KeepsFrame (applyUnitaryOwn {t = SimulatedOp} {n} lv own)
+applyUnitaryOwnKeeps lv own = keepsFrom (\st, un, v, c => (_ ** _ ** applyUnitaryOwnRuns lv own st un v c))
+
+export
+applyControlledOwnKeeps : {n, i : Nat} -> (q : Qubit) -> (ts : LVect i Qubit) -> (own : SimulatedOp i)
+                       -> KeepsFrame (applyControlledOwn {t = SimulatedOp} {n} q ts own)
+applyControlledOwnKeeps q ts own = keepsFrom (\st, un, v, c => (_ ** _ ** applyControlledOwnRuns q ts own st un v c))
+
+export
+applyMultipleControlledOwnKeeps : {n, i, k : Nat} -> (cs : LVect (S k) Qubit) -> (ts : LVect i Qubit)
+                               -> (own : SimulatedOp i)
+                               -> KeepsFrame (applyMultipleControlledOwn {t = SimulatedOp} {n} cs ts own)
+applyMultipleControlledOwnKeeps cs ts own =
+  keepsFrom (\st, un, v, c => (_ ** _ ** applyMultipleControlledOwnRuns cs ts own st un v c))
+
+export
+controlUSTKeeps : {n, i : Nat} -> (q : Qubit) -> (locs : LVect i Qubit)
+               -> (pat : (1 _ : LVect i Qubit) -> UStateT (SimulatedOp i) (SimulatedOp i) (LVect i Qubit))
+               -> KeepsFrame (controlUST {t = SimulatedOp} {n} q locs pat)
+controlUSTKeeps q locs pat = keepsFrom (\st, un, v, c => (_ ** _ ** controlUSTRuns q locs pat st un v c))
+
+export
+multipleControlUSTKeeps : {n, i, j : Nat} -> (cs : LVect i Qubit) -> (locs : LVect j Qubit)
+                       -> (pat : (1 _ : LVect j Qubit) -> UStateT (SimulatedOp j) (SimulatedOp j) (LVect j Qubit))
+                       -> KeepsFrame (multipleControlUST {t = SimulatedOp} {n} cs locs pat)
+multipleControlUSTKeeps cs locs pat =
+  keepsFrom (\st, un, v, c => (_ ** _ ** multipleControlUSTRuns cs locs pat st un v c))
+
+export
+applyHKeeps : {n : Nat} -> (q : Qubit) -> KeepsFrame (applyH {t = SimulatedOp} {n} q)
+applyHKeeps q = keepsFrom (\st, un, v, c => (_ ** _ ** applyHRuns q st un v c))
+
+export
+applyPKeeps : {n : Nat} -> (p : Double) -> (q : Qubit) -> KeepsFrame (applyP {t = SimulatedOp} {n} p q)
+applyPKeeps p q = keepsFrom (\st, un, v, c => (_ ** _ ** applyPRuns p q st un v c))
+
+export
+applyCNOTKeeps : {n : Nat} -> (q1, q2 : Qubit) -> KeepsFrame (applyCNOT {t = SimulatedOp} {n} q1 q2)
+applyCNOTKeeps q1 q2 = keepsFrom (\st, un, v, c => (_ ** _ ** applyCNOTRuns q1 q2 st un v c))
+
+export
+adjointUSTKeeps : {n, i : Nat} -> (u : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))
+               -> KeepsFrame (adjointUST {t = SimulatedOp} u)
+adjointUSTKeeps u v = MkKeepsU keep
+  where
+    keep : (s : SimulatedOp n) -> Frame v s -> Frame v (fst (unLPair (runUStateT s (adjointUST {t = SimulatedOp} u))))
+    keep (MkSimulatedOp st un w c) ok with (runUStateT (MkSimulatedOp (neutralIdPow n) (IdGate {n}) w c) u)
+      _ | (MkSimulatedOp _ _ _ _ # lv) = ok
+
+export
+applyParallelKeeps : {n, i, j : Nat} -> (u1 : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))
+                  -> (u2 : UStateT (SimulatedOp n) (SimulatedOp n) (LVect j Qubit))
+                  -> KeepsFrame u2 -> KeepsFrame (applyParallel {t = SimulatedOp} u1 u2)
+applyParallelKeeps u1 u2 k2 v = MkKeepsU keep
+  where
+    keep : (s : SimulatedOp n) -> Frame v s
+        -> Frame v (fst (unLPair (runUStateT s (applyParallel {t = SimulatedOp} u1 u2))))
+    keep (MkSimulatedOp st un w c) ok with (runUStateT (MkSimulatedOp st IdGate w c) u1)
+      _ | (MkSimulatedOp _ _ _ _ # l1) with (runUStateT (MkSimulatedOp st IdGate w c) u2) proof eq2
+        _ | (MkSimulatedOp _ _ w2 _ # l2) =
+          trans (replace {p = \x => Frame w (fst (unLPair x))} eq2
+                         (keepsU (k2 w) (MkSimulatedOp st IdGate w c) Refl)) ok
+
+export
+combineAbsKeeps : {n, i, j : Nat}
+               -> (u : UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))
+               -> KeepsFrame u -> KeepsFrame (combineAbs {t = SimulatedOp} u)
+combineAbsKeeps u k v = MkKeepsU keep
+  where
+    keep : (s : SimulatedOp n) -> Frame v s -> Frame v (fst (unLPair (runUStateT s (combineAbs {t = SimulatedOp} u))))
+    keep (MkSimulatedOp st un w c) ok with (runUStateT (MkSimulatedOp st un w c) u) proof eq
+      _ | (s' # (l # r)) = replace {p = \x => Frame v (fst (unLPair x))} eq (keepsU (k v) (MkSimulatedOp st un w c) ok)

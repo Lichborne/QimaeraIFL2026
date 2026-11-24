@@ -32,7 +32,7 @@ export
 pureKeeps : {0 i, a : Type} -> {0 pre : i -> Type} -> (x : a) -> KeepsU pre pre (UStateT.pure {t = i} x)
 pureKeeps x = MkKeepsU (\s, ok => ok)
 
-||| bindKeeps as a function on states. v is not erased, because the proof runs it.
+||| bindKeeps as a function on states. v is not erased - we run it.
 export
 bindStep : {0 i, m, o, a, b : Type} -> {0 pre : i -> Type} -> {0 mid : m -> Type} -> {0 post : o -> Type}
         -> {v : UStateT i m a} -> {f : (1 _ : a) -> UStateT m o b}
