@@ -23,7 +23,7 @@ private
 qid : Qubit -> Nat
 qid (MkQubit k) = k
 
-private
+public export
 lids : LVect n Qubit -> Vect n Nat
 lids [] = []
 lids (q :: qs) = qid q :: lids qs
@@ -33,7 +33,7 @@ private
 qubitToNatPairIs : (q : Qubit) -> qubitToNatPair q = (q # qid q)
 qubitToNatPairIs (MkQubit k) = Refl
 
-private
+public export
 distributeIs : (lv : LVect n Qubit) -> distributeDupedLVectVect lv = (lv # lids lv)
 distributeIs [] = Refl
 distributeIs (MkQubit k :: xs) = rewrite distributeIs xs in Refl
