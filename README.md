@@ -39,7 +39,7 @@ Idris scopes private names by namespace: a module can see the private names of t
 ### **`Utilities/UnitaryLinear.idr`**
 
 An algebraic representation of unitary quantum circuits that is linear in its arguments due to this being a condition for use
-in the bastract interface.
+in the abstract interface.
 
 The `Unitary` data type represents unitary circuits.
 The `Unitary` data type is parametrized by the arity of the corresponding unitary operator. It has 4 constructors : 
@@ -70,7 +70,7 @@ Visualize circuits :
  * `exportToQiskit` : Export a circuit to Qiskit code for a graphical rendering.
 
 There are also other ways of formatting with different styles of output in mind.
-This file also provides some function to compute the number of gates and the depth of a circuit.
+This file also provides some functions to compute the number of gates and the depth of a circuit.
 
 
 
@@ -99,7 +99,7 @@ The QuantumOp interface is an abstraction used to represent quantum operations. 
 
 The UnitaryOp interface uses information about available qubits provided to it by QuantumOp (or UnitaryRun, see below) to construct unitaries correctly but avoiding proof obligations. It can be used abstractly or utilizing the Unitary datatype (see Algorithms/QFT.idr for examples, for instance). Its functions are described in detail in the file.
 
-Further, the `UnitaryRun` interface, which can be used to obtain an instance of the Unitary datatype out of UnitaryOp by simply supplying Qubits to it is also found in this file. Its use is straighforward based on QuantumOp and accompanying examples.
+Further, the `UnitaryRun` interface, which can be used to obtain an instance of the Unitary datatype out of UnitaryOp by simply supplying Qubits to it is also found in this file. Its use is straightforward based on QuantumOp and accompanying examples.
 
 We also provide a concrete implementation of these interfaces. In this file, SimulatedOp provides linear-algebraic simulation of all the required quantum operations for QuantumOp. SimulatedOp's implementation of UnitaryOp is found in `Qimaera/Lib/ConcreteImplementations/SimulatedOp.idr`
 
@@ -117,7 +117,7 @@ Proofs about SimulatedOp's implementation of UnitaryOp (Section 4.3 of the paper
 
 ### **`Qimaera/Lib/ConcreteImplementations/BinarySimulatedOp.idr`**
 
-Implements UnitaryOp using BinarySimulatedOp, i.e. binary simulation of the quantum state. When an algorithm is run using this, the circuit, in cluding measurements, created is exported to a file with a name of the user's choosing. The implementation is split into (numbered) functions automatically, as well, for future visualization purposes. File outputs require Matplotlib package to run (last line of code, can be removed).
+Implements UnitaryOp using BinarySimulatedOp, i.e. binary simulation of the quantum state. When an algorithm is run using this, the circuit, including measurements, created is exported to a file with a name of the user's choosing. The implementation is split into (numbered) functions automatically, as well, for future visualization purposes. File outputs require Matplotlib package to run (last line of code, can be removed).
 
 ### **`Examples/Examples.idr`**
 
@@ -138,7 +138,7 @@ Defines some linear types such as linear vectors, and implements some basic func
 
 ### **`Utilities/Matrix.idr`**
 
-Defines all necesary matrix operations for the linear-algebraic simulation.
+Defines all necessary matrix operations for the linear-algebraic simulation.
 
 ### **`Algorithms/QFT.idr`**
 
@@ -179,7 +179,7 @@ this state and we go back to step (1).
 A quantum state transformer which realises a fair coin toss in the obvious way: 
 
  * first create a new qubit in state |0>
- * then apply a hadamard gate to it, thereby preparing state |+>
+ * then apply a Hadamard gate to it, thereby preparing state |+>
  * and finally measure the qubit and return this as the result
 
 
@@ -193,7 +193,7 @@ An implementation of UnitaryOp using the linear Unitary datatype.
 
 ### **`Utilities/UnitaryNoPrf.idr`**
 
-Unitary datatype without the proofs required for correctness. Useful for development, and for seeing that the abstract strucute enforces correctness without the explicit proofs. This can be seen via the implementation in Qimaera/Lib/ConcreteImplementations/UnitaryNoPrfSim.idr
+Unitary datatype without the proofs required for correctness. Useful for development, and for seeing that the abstract structure enforces correctness without the explicit proofs. This can be seen via the implementation in Qimaera/Lib/ConcreteImplementations/UnitaryNoPrfSim.idr
 
 ### **`Qimaera/Lib/ConcreteImplementations/UnitaryNoPrfSim.idr`**
 
@@ -209,7 +209,7 @@ Proofs about UStateT that hold for any implementation: whatever each operation p
 
 ### **`Algorithms/ModularExponentiation.idr`**
 
-Implementation of Quantum Modular Exponentiation. This is done using a paradigm where some ofthe Qubits are carried in separate linear vectors in order to keep track of them more easily. Some of the implementation is given using the usual paradigm used to define other functions on order to check that this new approach parses correctly.
+Implementation of Quantum Modular Exponentiation. This is done using a paradigm where some of the Qubits are carried in separate linear vectors in order to keep track of them more easily. Some of the implementation is given using the usual paradigm used to define other functions in order to check that this new approach parses correctly.
 
 ### **`Examples/QMESweep.idr`**
 
@@ -221,7 +221,7 @@ Simulates the circuits written by `Examples/QMESweep.idr` on every valid classic
 
 ### **`Utilities/NatRules.idr`**
 
-Some rules for natural numbers that Idris does not see from Data.Nat for one reason or another. These are taken directly from Idris 2's github repository, for the most part.
+Some rules for natural numbers that Idris does not see from Data.Nat for one reason or another. These are taken directly from Idris 2's GitHub repository, for the most part.
 
 ### **`Utilities/QuditMatrix.idr`**
 
