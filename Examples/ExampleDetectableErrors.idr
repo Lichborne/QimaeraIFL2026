@@ -141,7 +141,7 @@ failing "q2 is not accessible in this context."
 
 -- In this example, we try to use a 3 qubit gate on 4.
 -- The error message is not ideal (Idris tries to make q5 equal in type to LVect 0 Qubit), but works.
-failing
+failing "Mismatch between: S ?k and 0."
   brokenOp4 : IO (Vect 5 Bool)
   brokenOp4 =
     run (do

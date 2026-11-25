@@ -34,6 +34,31 @@ However, note that this is an update to the original, with no publicly available
 
 Idris scopes private names by namespace: a module can see the private names of the modules above it in the namespace hierarchy. The functions that run `UStateT` and `QStateT` computations are private in `Qimaera/Lib.idr`, so the interfaces and the implementations, which all live under `Qimaera.Lib`, can run computations, while code outside that namespace can only compose the operations of the interfaces. The simulator states are defined there too, with private constructors, so that both `Qimaera/Lib/QuantumOp.idr` and the simulators can open them but client code cannot. The qubit constructor `MkQubit` is private in `Qimaera/Lib/QuantumOp.idr`, so none of the implementations in `Qimaera/Lib/ConcreteImplementations/`, including the simulators' `UnitaryOp` code, can see it.
 
+## <a id="proofs"></a> Proofs
+
+The proofs behind Section 4.3 of the paper are in three files. All three are `%default total` and use no `believe_me` or other escape hatches.
+
+* `Qimaera/Lib/UStateT/Proofs.idr`: for any implementation, whatever each operation preserves, every `UnitaryOp` program preserves (`bindKeeps`).
+* `Qimaera/Lib/QuantumOp/Proofs.idr`: the identifier invariant `FreshIds` (the identifiers of live qubits are pairwise different and below the allocation counter) holds at the start (`freshStart`) and is kept by allocation (`newQubitsFresh`), measurement (`measureFresh`) and applying a unitary (`applyCircFresh`). For live handles with pairwise different identifiers, `positions` gives distinct wires in range (`positionsInjective`), so the run-time check passes (`checkPasses`) and `applySafe` is `apply` (`applySafeIsApply`).
+* `Qimaera/Lib/ConcreteImplementations/SimulatedOp/Proofs.idr`: for `SimulatedOp`, each `UnitaryOp` operation reduces to `applySafe` at the positions of its handles (the `...Runs` lemmas; `applyUnitaryApplies` combines this with `checkPasses` and `applySafeIsApply`), and each keeps the live handles and the counter (`KeepsFrame` and the `...Keeps` lemmas), so it keeps `FreshIds` (`keepsFresh`).
+
+To check them, from the repository root:
+
+    idris2 -p contrib -p linear --check Qimaera/Lib/UStateT/Proofs.idr
+    idris2 -p contrib -p linear --check Qimaera/Lib/QuantumOp/Proofs.idr
+    idris2 -p contrib -p linear --check Qimaera/Lib/ConcreteImplementations/SimulatedOp/Proofs.idr
+
+## <a id="checks"></a> Checks
+
+**Rejected programs.** Every example in `Examples/ExampleDetectableErrors.idr` sits in a `failing` block with the error message it must produce, so checking the file checks that each example is rejected for the intended reason:
+
+    idris2 -p contrib -p linear --check Examples/ExampleDetectableErrors.idr
+
+**Modular exponentiation on small instances.** `Examples/QMESweep.idr` exports the controlled multiplication `modularN 4 a N` (11 qubits) for every N < 16 and every a coprime to N, 71 circuits in all, as Qiskit files. `Examples/check_qme.py` simulates each one on every valid classical input (control qubit 0 or 1, x < N, other registers 0) and checks that it gives a x mod N when the control is set and leaves x unchanged otherwise. It needs Python 3 with NumPy; each step takes about a minute.
+
+    idris2 -p contrib -p linear Examples/QMESweep.idr -o qmesweep
+    mkdir -p qme && cd qme && ../build/exec/qmesweep && python3 ../Examples/check_qme.py
+
 ## <a id="overview"></a> Library Overview
 
 ### **`Utilities/UnitaryLinear.idr`**
