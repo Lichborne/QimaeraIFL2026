@@ -109,7 +109,7 @@ Proofs about qubit identifiers and wires (Section 4.3 of the paper). The identif
 
 ### **`Qimaera/Lib/ConcreteImplementations/SimulatedOp.idr`**
 
-Implements UnitaryOp using SimulatedOp. Unitary is used to collect the unitary bits, but linear algebra would work too (although it is very slow) for. both states and unitaries. Note that the counter has, in the new implementation, become vacuous, and therefore can be repurposed or removed.
+Implements UnitaryOp using SimulatedOp. Unitary is used to collect the unitary bits, but linear algebra would work too (although it is very slow) for both states and unitaries. The counter supplies the identifiers of new qubits, which keeps them distinct (see `Qimaera/Lib/QuantumOp/Proofs.idr`).
 
 ### **`Qimaera/Lib/ConcreteImplementations/SimulatedOp/Proofs.idr`**
 
@@ -130,7 +130,7 @@ This file contains common examples of inadmissible programs that can be detected
 
 ### **`Utilities/Lemmas.idr`**
 
-Proofs of all the lemmas used to define all the basic function in `Unitary.idr`. Some of these lemmas are reused in quantum algorithms.
+Proofs of all the lemmas used to define all the basic functions in `Utilities/UnitaryLinear.idr`. Some of these lemmas are reused in quantum algorithms.
 
 ### **`Utilities/LinearTypes.idr`**
 
@@ -143,10 +143,6 @@ Defines all necesary matrix operations for the linear-algebraic simulation.
 ### **`Algorithms/QFT.idr`**
 
 The quantum circuit for the Quantum Fourier Transform. Calling `qft n` returns the QFT on n qubits.
-
-### **`Teleportation.idr`**
-
-Implementation of the quantum teleportation protocol. 
 
 ### **`Algorithms/QAOA.idr`**
 
@@ -210,10 +206,6 @@ Unitary state transformer for effectful quantum computation. Similar to QStateT,
 ### **`Qimaera/Lib/UStateT/Proofs.idr`**
 
 Proofs about UStateT that hold for any implementation: whatever each operation preserves, every UnitaryOp program preserves (`bindKeeps`). It is `%default total`.
-
-### **`QubitDevelopment.idr`**
-
-This file contains Unique Linear Vectors and other Qubit related developments, and is separate from the main files
 
 ### **`Algorithms/ModularExponentiation.idr`**
 
