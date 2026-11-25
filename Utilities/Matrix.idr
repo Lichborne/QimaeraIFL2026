@@ -105,7 +105,7 @@ export
 tensorProduct : Matrix n (S m) -> Matrix p r -> Matrix (n * p) ((S m) * r)
 tensorProduct [] _ = []
 tensorProduct [v] xs = rewrite multZeroLeftZero p in rewrite plusZeroRightNeutral p in tensorProduct' v xs
-tensorProduct (v :: w :: vs) xs = (tensorProduct' v xs) `concatCols` (tensorProduct (assert_smaller (v::w::vs) (w :: vs)) xs)
+tensorProduct (v :: w :: vs) xs = (tensorProduct' v xs) `concatCols` (tensorProduct (w :: vs) xs)
 
 private
 tensorRow : {p:Nat} -> Vector m -> Matrix p r -> Matrix p (m * r)
