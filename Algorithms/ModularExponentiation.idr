@@ -123,6 +123,59 @@ export
 inPlaceQFTAdderInv : UnitaryOp t => {i: Nat} -> {n : Nat} -> (1_ : LVect (i + S i) Qubit) -> UStateT (t n) (t n) ((LVect (i + S i) Qubit))
 inPlaceQFTAdderInv lv = adjointUST $ inPlaceQFTAdder lv
 
+---------------THE SAME ADDER, WRITTEN DIRECTLY IN Unitary (for comparison)---------------
+{- Without qubit handles, every gate is placed with apply on wire numbers, and apply asks
+for a proof that they are in range and distinct. Written this way, addWithQFTHelp,
+addAligned, addWithQFT and inPlaceQFTAdder need five lemmas and proof arguments in ten
+places; the UnitaryOp versions above need none. inPlaceQFTAdderU i builds the same circuit
+as buildUnitary {t = Unitary} (inPlaceQFTAdder {i}), with a on wires 0 .. i-1 and b on
+wires i .. i + i (checked for i = 1 to 4). It typechecks if uncommented.
+
+||| Proof: wires c < t form a valid pair in a space of n wires
+inj2 : {n, c, t : Nat} -> LT c t -> LT t n -> IsInjectiveT n [c, t]
+inj2 ct tn = IsInjectiveSucc (AllDiffSucc (IsDiffSucc (Left ct) IsDiffNil) (AllDiffSucc IsDiffNil AllDiffNil))
+                             (ASSucc (Utilities.Injection.lteTransitive ct (lteSuccLeft tn)) (ASSucc tn ASNil))
+
+||| Proof: b_j (wire i + j, with j <= i) is in range
+bInRange : (i, j : Nat) -> LTE j i -> LTE (S (i + j)) (i + S i)
+bInRange i j pj = rewrite plusSuccRightSucc i j in plusLteMonotoneLeft i (S j) (S i) (LTESucc pj)
+
+||| Proof: a_k (wire k, with k < i) comes before b_j (wire i + j)
+aBeforeB : (i, j, k : Nat) -> LTE (S k) i -> LTE (S k) (i + j)
+aBeforeB i j k pk = Utilities.Injection.lteTransitive pk (lteAddRight i)
+
+||| Proof: k + (r + 1) = i gives k < i
+ltFromCount : (k, r, i : Nat) -> k + S r = i -> LTE (S k) i
+ltFromCount k r i prf = rewrite sym prf in rewrite sym (plusSuccRightSucc k r) in LTESucc (lteAddRight k)
+
+||| Proof: k + (r + 1) = i gives (k + 1) + r = i
+countStep : (k, r, i : Nat) -> k + S r = i -> S k + r = i
+countStep k r i prf = trans (plusSuccRightSucc k r) prf
+
+||| b_j gets R_m from a_k, R_(m+1) from a_(k+1), ..., up to a_(i-1); r = i - k
+addWithQFTHelpU : (i, j, k, r, m : Nat) -> LTE j i -> k + r = i -> (1 _ : Unitary (i + S i)) -> Unitary (i + S i)
+addWithQFTHelpU i j k Z m pj pkr u = u
+addWithQFTHelpU i j k (S r) m pj pkr u =
+  let pk = ltFromCount k r i pkr in
+  addWithQFTHelpU i j (S k) r (S m) pj (countStep k r i pkr)
+    (apply (cRmOld m) u [k, i + j] {prf = inj2 (aBeforeB i j k pk) (bInRange i j pj)})
+
+||| b_(j+1) gets R_1 from a_j, R_2 from a_(j+1), ..., for each j from the given one; r = i - j
+addAlignedU : (i, j, r : Nat) -> j + r = i -> (1 _ : Unitary (i + S i)) -> Unitary (i + S i)
+addAlignedU i j Z pjr u = u
+addAlignedU i j (S r) pjr u =
+  addAlignedU i (S j) r (countStep j r i pjr)
+    (addWithQFTHelpU i (S j) j (S r) 1 (ltFromCount j r i pjr) pjr u)
+
+||| b_0 gets R_2 from a_0, R_3 from a_1, ...; then the aligned part
+addWithQFTU : (i : Nat) -> (1 _ : Unitary (i + S i)) -> Unitary (i + S i)
+addWithQFTU i u = addAlignedU i 0 i Refl (addWithQFTHelpU i 0 0 i 2 LTEZero Refl u)
+
+||| |a>|b> -> |a>|(b + a) mod 2^(i+1)>
+inPlaceQFTAdderU : (i : Nat) -> Unitary (i + S i)
+inPlaceQFTAdderU i = (IdGate {n = i} # adjoint (qftOld (S i))) . addWithQFTU i (IdGate {n = i} # qftOld (S i))
+-}
+
 ---------------CONSTANT ADDER IN FOURIER SPACE (Beauregard's phiADD(a))---------------
 ||| b is a register of k qubits in Fourier space (after qft; big-endian). There its
 ||| first qubit carries the phase 2 pi b / 2^k, the next 2 pi b / 2^(k-1), and so on,

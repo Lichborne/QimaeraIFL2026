@@ -42,21 +42,21 @@ applyUnitaryApplies lv ui st un v c live diff with (checkPasses v (lids lv) live
   _ | (prf ** ok) = (prf ** rewrite sym (applySafeIsApply ui un (positions v (lids lv)) ok) in
                              applyUnitaryRuns lv ui st un v c)
 
-||| The live handles of the state are v.
+||| The live handles of the state are v and its counter is c.
 public export
-Frame : Vect n Qubit -> SimulatedOp n -> Type
-Frame v (MkSimulatedOp _ _ w _) = w = v
+Frame : Vect n Qubit -> Nat -> SimulatedOp n -> Type
+Frame v c (MkSimulatedOp _ _ w d) = (w = v, d = c)
 
-||| So applyUnitary keeps the live handles, and bindKeeps carries this through any computation built from operations that keep them.
+||| So applyUnitary keeps the live handles and the counter, and bindKeeps carries this through any computation built from operations that keep them.
 export
-applyUnitaryKeeps : {n, i : Nat} -> (lv : LVect i Qubit) -> (ui : Unitary i) -> (v : Vect n Qubit)
-                 -> KeepsU (Frame v) (Frame v) (applyUnitary {t = SimulatedOp} lv ui)
-applyUnitaryKeeps lv ui v = MkKeepsU keep
+applyUnitaryKeeps : {n, i : Nat} -> (lv : LVect i Qubit) -> (ui : Unitary i) -> (v : Vect n Qubit) -> (c : Nat)
+                 -> KeepsU (Frame v c) (Frame v c) (applyUnitary {t = SimulatedOp} lv ui)
+applyUnitaryKeeps lv ui v c = MkKeepsU keep
   where
-    keep : (s : SimulatedOp n) -> Frame v s
-        -> Frame v (fst (unLPair (runUStateT s (applyUnitary {t = SimulatedOp} lv ui))))
-    keep (MkSimulatedOp st un w c) ok =
-      replace {p = \r => Frame v (fst (unLPair r))} (sym (applyUnitaryRuns lv ui st un w c)) ok
+    keep : (s : SimulatedOp n) -> Frame v c s
+        -> Frame v c (fst (unLPair (runUStateT s (applyUnitary {t = SimulatedOp} lv ui))))
+    keep (MkSimulatedOp st un w d) ok =
+      replace {p = \r => Frame v c (fst (unLPair r))} (sym (applyUnitaryRuns lv ui st un w d)) ok
 
 
 ||| The unitary of a state.
@@ -64,21 +64,21 @@ public export
 unitaryOf : SimulatedOp n -> Unitary n
 unitaryOf (MkSimulatedOp _ u _ _) = u
 
-||| u keeps the live handles, whatever they are.
+||| u keeps the live handles and the counter, whatever they are.
 public export
 KeepsFrame : {n : Nat} -> {a : Type} -> UStateT (SimulatedOp n) (SimulatedOp n) a -> Type
-KeepsFrame u = (v : Vect n Qubit) -> KeepsU (Frame v) (Frame v) u
+KeepsFrame u = (v : Vect n Qubit) -> (c : Nat) -> KeepsU (Frame v c) (Frame v c) u
 
-||| A computation that changes only the unitary of every state keeps the live handles.
+||| A computation that changes only the unitary of every state keeps the live handles and the counter.
 keepsFrom : {n : Nat} -> {a : Type} -> {u : UStateT (SimulatedOp n) (SimulatedOp n) a}
          -> ((st : Matrix (power 2 n) 1) -> (un : Unitary n) -> (v : Vect n Qubit) -> (c : Nat)
              -> (u' : Unitary n ** (r : a ** runUStateT (MkSimulatedOp st un v c) u = (MkSimulatedOp st u' v c # r))))
          -> KeepsFrame u
-keepsFrom runs v = MkKeepsU keep
+keepsFrom runs v c = MkKeepsU keep
   where
-    keep : (s : SimulatedOp n) -> Frame v s -> Frame v (fst (unLPair (runUStateT s u)))
-    keep (MkSimulatedOp st un w c) ok with (runs st un w c)
-      _ | (u' ** r ** eq) = replace {p = \x => Frame v (fst (unLPair x))} (sym eq) ok
+    keep : (s : SimulatedOp n) -> Frame v c s -> Frame v c (fst (unLPair (runUStateT s u)))
+    keep (MkSimulatedOp st un w d) ok with (runs st un w d)
+      _ | (u' ** r ** eq) = replace {p = \x => Frame v c (fst (unLPair x))} (sym eq) ok
 
 ||| The other operations that apply a gate do so as applyUnitary does: at the positions of their handles, giving
 ||| them back. checkPasses and applySafeIsApply turn each into apply, as in applyUnitaryApplies.
@@ -209,32 +209,48 @@ applyCNOTKeeps q1 q2 = keepsFrom (\st, un, v, c => (_ ** _ ** applyCNOTRuns q1 q
 export
 adjointUSTKeeps : {n, i : Nat} -> (u : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))
                -> KeepsFrame (adjointUST {t = SimulatedOp} u)
-adjointUSTKeeps u v = MkKeepsU keep
+adjointUSTKeeps u v c = MkKeepsU keep
   where
-    keep : (s : SimulatedOp n) -> Frame v s -> Frame v (fst (unLPair (runUStateT s (adjointUST {t = SimulatedOp} u))))
-    keep (MkSimulatedOp st un w c) ok with (runUStateT (MkSimulatedOp (neutralIdPow n) (IdGate {n}) w c) u)
+    keep : (s : SimulatedOp n) -> Frame v c s -> Frame v c (fst (unLPair (runUStateT s (adjointUST {t = SimulatedOp} u))))
+    keep (MkSimulatedOp st un w d) ok with (runUStateT (MkSimulatedOp (neutralIdPow n) (IdGate {n}) w d) u)
       _ | (MkSimulatedOp _ _ _ _ # lv) = ok
 
 export
 applyParallelKeeps : {n, i, j : Nat} -> (u1 : UStateT (SimulatedOp n) (SimulatedOp n) (LVect i Qubit))
                   -> (u2 : UStateT (SimulatedOp n) (SimulatedOp n) (LVect j Qubit))
                   -> KeepsFrame u2 -> KeepsFrame (applyParallel {t = SimulatedOp} u1 u2)
-applyParallelKeeps u1 u2 k2 v = MkKeepsU keep
+applyParallelKeeps u1 u2 k2 v c = MkKeepsU keep
   where
-    keep : (s : SimulatedOp n) -> Frame v s
-        -> Frame v (fst (unLPair (runUStateT s (applyParallel {t = SimulatedOp} u1 u2))))
-    keep (MkSimulatedOp st un w c) ok with (runUStateT (MkSimulatedOp st IdGate w c) u1)
-      _ | (MkSimulatedOp _ _ _ _ # l1) with (runUStateT (MkSimulatedOp st IdGate w c) u2) proof eq2
+    keep : (s : SimulatedOp n) -> Frame v c s
+        -> Frame v c (fst (unLPair (runUStateT s (applyParallel {t = SimulatedOp} u1 u2))))
+    keep (MkSimulatedOp st un w d) ok with (runUStateT (MkSimulatedOp st IdGate w d) u1)
+      _ | (MkSimulatedOp _ _ _ _ # l1) with (runUStateT (MkSimulatedOp st IdGate w d) u2) proof eq2
         _ | (MkSimulatedOp _ _ w2 _ # l2) =
-          trans (replace {p = \x => Frame w (fst (unLPair x))} eq2
-                         (keepsU (k2 w) (MkSimulatedOp st IdGate w c) Refl)) ok
+          (trans (fst (replace {p = \x => Frame w d (fst (unLPair x))} eq2
+                              (keepsU (k2 w d) (MkSimulatedOp st IdGate w d) (Refl, Refl)))) (fst ok),
+           snd ok)
 
 export
 combineAbsKeeps : {n, i, j : Nat}
                -> (u : UStateT (SimulatedOp n) (SimulatedOp n) (LPair (LVect i Qubit) (LVect j Qubit)))
                -> KeepsFrame u -> KeepsFrame (combineAbs {t = SimulatedOp} u)
-combineAbsKeeps u k v = MkKeepsU keep
+combineAbsKeeps u k v c = MkKeepsU keep
   where
-    keep : (s : SimulatedOp n) -> Frame v s -> Frame v (fst (unLPair (runUStateT s (combineAbs {t = SimulatedOp} u))))
-    keep (MkSimulatedOp st un w c) ok with (runUStateT (MkSimulatedOp st un w c) u) proof eq
-      _ | (s' # (l # r)) = replace {p = \x => Frame v (fst (unLPair x))} eq (keepsU (k v) (MkSimulatedOp st un w c) ok)
+    keep : (s : SimulatedOp n) -> Frame v c s -> Frame v c (fst (unLPair (runUStateT s (combineAbs {t = SimulatedOp} u))))
+    keep (MkSimulatedOp st un w d) ok with (runUStateT (MkSimulatedOp st un w d) u) proof eq
+      _ | (s' # (l # r)) = replace {p = \x => Frame v c (fst (unLPair x))} eq (keepsU (k v c) (MkSimulatedOp st un w d) ok)
+
+freshAlong : w' = w -> d' = d -> FreshIds w d -> FreshIds w' d'
+freshAlong Refl Refl fr = fr
+
+||| So every computation that keeps the frame keeps Fresh, the identifier invariant of QuantumOp.Proofs.
+export
+keepsFresh : {n : Nat} -> {a : Type} -> {u : UStateT (SimulatedOp n) (SimulatedOp n) a}
+          -> KeepsFrame u -> KeepsU Fresh Fresh u
+keepsFresh k = MkKeepsU keep
+  where
+    keep : (s : SimulatedOp n) -> Fresh s -> Fresh (fst (unLPair (runUStateT s u)))
+    keep (MkSimulatedOp st un w d) fr with (runUStateT (MkSimulatedOp st un w d) u) proof eq
+      _ | (MkSimulatedOp _ _ w' d' # r) with (replace {p = \x => Frame w d (fst (unLPair x))} eq
+                                                        (keepsU (k w d) (MkSimulatedOp st un w d) (Refl, Refl)))
+        _ | (wEq, dEq) = freshAlong wEq dEq fr
